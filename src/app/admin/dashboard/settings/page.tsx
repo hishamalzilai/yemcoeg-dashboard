@@ -1,18 +1,90 @@
 "use client";
 
-import { useState } from "react";
-import { Settings as SettingsIcon, Save, Key, User, Bell, Shield, Loader2, Database, Edit2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Settings as SettingsIcon, Save, Key, User, Bell, Shield, Loader2, Database, Edit2, CheckCircle2, AlertCircle, X } from "lucide-react";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState<{ type: "success" | "error", text: string } | null>(null);
+
+  const [profile, setProfile] = useState({ name: "", email: "" });
+  const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
+
+  useEffect(() => {
+    fetch("/api/admin/profile")
+      .then(res => res.json())
+      .then(data => {
+        if (data.email) {
+          setProfile({ name: data.name, email: data.email });
+        }
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSaveProfile = async () => {
+    if (!profile.name || !profile.email) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/admin/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(profile),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({ type: "success", text: "تم تحديث الملف الشخصي بنجاح" });
+      } else {
+        setMessage({ type: "error", text: data.error || "حدث خطأ أثناء التحديث" });
+      }
+    } catch (e) {
+      setMessage({ type: "error", text: "حدث خطأ في الاتصال" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSavePassword = async () => {
+    if (!passwords.currentPassword || !passwords.newPassword) return;
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      setMessage({ type: "error", text: "كلمة المرور الجديدة غير متطابقة" });
+      return;
+    }
+
+    setSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/admin/profile/password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(passwords),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMessage({ type: "success", text: "تم تغيير كلمة المرور بنجاح" });
+        setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      } else {
+        setMessage({ type: "error", text: data.error || "حدث خطأ أثناء التحديث" });
+      }
+    } catch (e) {
+      setMessage({ type: "error", text: "حدث خطأ في الاتصال" });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleSave = () => {
-    setSaving(true);
-    setTimeout(() => {
-      setSaving(false);
-      // In a real app, this would show a toast notification
-    }, 1000);
+    if (activeTab === "profile") handleSaveProfile();
+    else if (activeTab === "security") handleSavePassword();
+    else {
+      setSaving(true);
+      setTimeout(() => {
+        setSaving(false);
+        setMessage({ type: "success", text: "تم حفظ الإعدادات" });
+      }, 1000);
+    }
   };
 
   const tabs = [
@@ -23,8 +95,16 @@ export default function SettingsPage() {
     { id: "api", label: "API & Integrations", icon: <Database size={16} /> },
   ];
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 size={28} className="animate-spin text-emerald-400" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6 max-w-5xl relative">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <div className="p-2.5 rounded-xl bg-gradient-to-br from-slate-400 to-slate-500 shadow-lg shadow-slate-500/15">
@@ -36,6 +116,20 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {message && (
+        <div className={`p-4 rounded-xl flex items-center gap-3 mb-6 transition-all ${
+          message.type === "success" 
+            ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+            : "bg-rose-500/10 border border-rose-500/20 text-rose-400"
+        }`}>
+          {message.type === "success" ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
+          <p className="text-sm font-semibold">{message.text}</p>
+          <button onClick={() => setMessage(null)} className="mr-auto opacity-70 hover:opacity-100">
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Sidebar Navigation */}
         <div className="w-full lg:w-64 flex-shrink-0">
@@ -43,7 +137,10 @@ export default function SettingsPage() {
             {tabs.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setMessage(null);
+                }}
                 className={`
                   flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-semibold transition-all whitespace-nowrap
                   ${
@@ -64,7 +161,7 @@ export default function SettingsPage() {
 
         {/* Content Area */}
         <div className="flex-1">
-          <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6 sm:p-8">
+          <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-6 sm:p-8 relative">
             
             {/* General Settings */}
             {activeTab === "general" && (
@@ -114,16 +211,13 @@ export default function SettingsPage() {
 
                 <div className="flex items-center gap-6 mb-8">
                   <div className="relative">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-2xl font-bold text-white shadow-xl shadow-emerald-500/20">
-                      م
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-3xl font-bold text-white shadow-xl shadow-emerald-500/20">
+                      {profile.name.charAt(0) || "م"}
                     </div>
-                    <button className="absolute bottom-0 right-0 p-1.5 rounded-full bg-white text-slate-800 shadow-md hover:scale-110 transition-transform">
-                      <Edit2 size={12} />
-                    </button>
                   </div>
                   <div>
-                    <h4 className="text-white font-bold">المسؤول</h4>
-                    <p className="text-sm text-slate-400">admin@yemeni-community.com</p>
+                    <h4 className="text-white font-bold text-lg">{profile.name || "المسؤول"}</h4>
+                    <p className="text-sm text-slate-400">{profile.email}</p>
                   </div>
                 </div>
 
@@ -132,7 +226,8 @@ export default function SettingsPage() {
                     <label className="text-[12px] font-semibold text-slate-400">الاسم الكامل</label>
                     <input
                       type="text"
-                      defaultValue="المسؤول"
+                      value={profile.name}
+                      onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                       className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3 px-4 text-sm text-white input-glow transition-all"
                     />
                   </div>
@@ -140,7 +235,8 @@ export default function SettingsPage() {
                     <label className="text-[12px] font-semibold text-slate-400">البريد الإلكتروني</label>
                     <input
                       type="email"
-                      defaultValue="admin@yemeni-community.com"
+                      value={profile.email}
+                      onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                       className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3 px-4 text-sm text-white font-mono input-glow transition-all text-left"
                       dir="ltr"
                     />
@@ -164,7 +260,10 @@ export default function SettingsPage() {
                       <Key size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" />
                       <input
                         type="password"
-                        className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3 pr-11 pl-4 text-sm text-white input-glow transition-all"
+                        value={passwords.currentPassword}
+                        onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })}
+                        className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3 pr-11 pl-4 text-sm text-white input-glow transition-all text-left"
+                        dir="ltr"
                       />
                     </div>
                   </div>
@@ -174,7 +273,10 @@ export default function SettingsPage() {
                       <Key size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" />
                       <input
                         type="password"
-                        className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3 pr-11 pl-4 text-sm text-white input-glow transition-all"
+                        value={passwords.newPassword}
+                        onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })}
+                        className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3 pr-11 pl-4 text-sm text-white input-glow transition-all text-left"
+                        dir="ltr"
                       />
                     </div>
                   </div>
@@ -184,7 +286,10 @@ export default function SettingsPage() {
                       <Key size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500" />
                       <input
                         type="password"
-                        className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3 pr-11 pl-4 text-sm text-white input-glow transition-all"
+                        value={passwords.confirmPassword}
+                        onChange={(e) => setPasswords({ ...passwords, confirmPassword: e.target.value })}
+                        className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3 pr-11 pl-4 text-sm text-white input-glow transition-all text-left"
+                        dir="ltr"
                       />
                     </div>
                   </div>
@@ -202,19 +307,26 @@ export default function SettingsPage() {
             )}
 
             {/* Action Buttons */}
-            <div className="mt-8 pt-6 border-t border-white/[0.06] flex items-center justify-end gap-3">
-              <button className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-400 hover:text-white hover:bg-white/[0.05] transition-all">
-                إلغاء
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-l from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all text-sm font-bold disabled:opacity-50"
-              >
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                {saving ? "جاري الحفظ..." : "حفظ التغييرات"}
-              </button>
-            </div>
+            {["general", "profile", "security"].includes(activeTab) && (
+              <div className="mt-8 pt-6 border-t border-white/[0.06] flex items-center justify-end gap-3">
+                <button 
+                  onClick={() => {
+                    if (activeTab === "security") setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
+                  }}
+                  className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-400 hover:text-white hover:bg-white/[0.05] transition-all"
+                >
+                  إلغاء
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-l from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all text-sm font-bold disabled:opacity-50"
+                >
+                  {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  {saving ? "جاري الحفظ..." : "حفظ التغييرات"}
+                </button>
+              </div>
+            )}
 
           </div>
         </div>
