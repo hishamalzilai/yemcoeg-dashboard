@@ -13,6 +13,7 @@ export async function GET(request: Request) {
       where.OR = [
         { fullName: { contains: search } },
         { phone: { contains: search } },
+        { transactionId: { contains: search } },
       ];
     }
     

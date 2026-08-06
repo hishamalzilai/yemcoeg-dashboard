@@ -17,6 +17,7 @@ model Admin {
 
 model AidRequest {
   id           String   @id @default(uuid())
+  transactionId String?
   fullName     String
   phone        String
   idNumber     String

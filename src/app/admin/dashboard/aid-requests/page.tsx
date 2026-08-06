@@ -4,22 +4,24 @@ import { useState, useEffect, useCallback } from "react";
 import {
   HandHeart,
   Search,
-  Filter,
-  Eye,
   Clock,
   CheckCircle2,
   XCircle,
   Loader2,
   RefreshCw,
-  MessageSquare,
-  X,
+  ChevronDown,
+  ChevronUp,
   Save,
-  ChevronLeft,
-  ChevronRight,
+  FileText,
+  MapPin,
+  Phone,
+  Hash,
+  AlertCircle
 } from "lucide-react";
 
 interface AidRequest {
   id: string;
+  transactionId: string | null;
   fullName: string;
   phone: string;
   idNumber: string;
@@ -90,10 +92,14 @@ export default function AidRequestsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [selectedRequest, setSelectedRequest] = useState<AidRequest | null>(null);
+  
+  // For expandable cards
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  
+  // For editing state inside the expanded card
   const [editStatus, setEditStatus] = useState("");
   const [editNotes, setEditNotes] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   const fetchRequests = useCallback(async () => {
     setLoading(true);
@@ -115,28 +121,31 @@ export default function AidRequestsPage() {
     fetchRequests();
   }, [fetchRequests]);
 
-  const handleUpdate = async () => {
-    if (!selectedRequest) return;
-    setSaving(true);
+  const toggleExpand = (req: AidRequest) => {
+    if (expandedId === req.id) {
+      setExpandedId(null);
+    } else {
+      setExpandedId(req.id);
+      setEditStatus(req.status);
+      setEditNotes(req.notes || "");
+    }
+  };
+
+  const handleUpdate = async (id: string) => {
+    setSavingId(id);
     try {
-      await fetch(`/api/admin/forms/${selectedRequest.id}`, {
+      await fetch(`/api/admin/forms/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: editStatus, notes: editNotes }),
       });
-      setSelectedRequest(null);
-      fetchRequests();
+      // Update local state without fully refetching to avoid collapsing the card
+      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: editStatus, notes: editNotes } : r));
     } catch (e) {
       console.error(e);
     } finally {
-      setSaving(false);
+      setSavingId(null);
     }
-  };
-
-  const openDetail = (req: AidRequest) => {
-    setSelectedRequest(req);
-    setEditStatus(req.status);
-    setEditNotes(req.notes || "");
   };
 
   const statusCounts = {
@@ -148,7 +157,7 @@ export default function AidRequestsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -158,7 +167,7 @@ export default function AidRequestsPage() {
           <div>
             <h2 className="text-xl font-black text-white">طلبات المساعدة</h2>
             <p className="text-[12px] text-slate-500">
-              إدارة ومتابعة جميع طلبات المساعدة
+              إدارة ومتابعة جميع طلبات المساعدة والمستفيدين
             </p>
           </div>
         </div>
@@ -172,7 +181,7 @@ export default function AidRequestsPage() {
       </div>
 
       {/* Status Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
         {[
           { key: "", label: "الكل", count: statusCounts.all },
           { key: "pending", label: "معلّق", count: statusCounts.pending },
@@ -182,7 +191,10 @@ export default function AidRequestsPage() {
         ].map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setStatusFilter(tab.key)}
+            onClick={() => {
+              setStatusFilter(tab.key);
+              setExpandedId(null);
+            }}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-all
               ${
                 statusFilter === tab.key
@@ -194,7 +206,7 @@ export default function AidRequestsPage() {
             <span
               className={`text-[10px] px-1.5 py-0.5 rounded-md ${
                 statusFilter === tab.key
-                  ? "bg-emerald-500/20 text-emerald-400"
+                  ? "bg-amber-500/20 text-amber-400"
                   : "bg-white/[0.04] text-slate-600"
               }`}
             >
@@ -204,190 +216,176 @@ export default function AidRequestsPage() {
         ))}
       </div>
 
-      {/* Search */}
+      {/* Search Bar */}
       <div className="relative">
         <Search
           size={17}
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600"
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500"
         />
         <input
           type="text"
-          placeholder="ابحث بالاسم أو رقم الهاتف..."
+          placeholder="ابحث بالاسم، رقم الهاتف، أو رقم المعاملة (مثال: YEM-123456)..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3 pr-12 pl-4 text-sm text-white placeholder-slate-600 input-glow transition-all"
+          className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3.5 pr-12 pl-4 text-sm text-white placeholder-slate-500 input-glow transition-all"
         />
       </div>
 
-      {/* Table */}
-      <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
+      {/* Requests List */}
+      <div className="space-y-4">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 size={28} className="animate-spin text-emerald-400" />
+            <Loader2 size={32} className="animate-spin text-amber-500" />
           </div>
         ) : requests.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-600">
-            <HandHeart size={44} className="mb-3 opacity-30" />
-            <p className="text-sm font-medium">لا توجد طلبات</p>
+          <div className="flex flex-col items-center justify-center py-20 text-slate-600 rounded-2xl bg-white/[0.02] border border-white/[0.04]">
+            <HandHeart size={48} className="mb-4 opacity-20" />
+            <p className="text-sm font-medium">لا توجد طلبات مطابقة للبحث</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/[0.06]">
-                  {["الاسم", "الهاتف", "المدينة", "نوع المساعدة", "الحالة", "التاريخ", "إجراء"].map(
-                    (h) => (
-                      <th
-                        key={h}
-                        className="text-right px-5 py-3.5 text-[11px] font-bold text-slate-600 uppercase tracking-wider"
-                      >
-                        {h}
-                      </th>
-                    )
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map((req) => (
-                  <tr
-                    key={req.id}
-                    className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
-                  >
-                    <td className="px-5 py-4 text-sm font-semibold text-slate-200">
-                      {req.fullName}
-                    </td>
-                    <td className="px-5 py-4 text-sm text-slate-400 font-mono">
-                      {req.phone}
-                    </td>
-                    <td className="px-5 py-4 text-sm text-slate-400">
-                      {req.city}
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="text-[11px] px-2 py-0.5 rounded-md bg-white/[0.04] text-slate-400 font-medium">
-                        {aidTypeLabels[req.aidType] || req.aidType}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <StatusBadge status={req.status} />
-                    </td>
-                    <td className="px-5 py-4 text-[12px] text-slate-500 tabular-nums">
-                      {new Date(req.createdAt).toLocaleDateString("ar-EG", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </td>
-                    <td className="px-5 py-4">
-                      <button
-                        onClick={() => openDetail(req)}
-                        className="p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white transition-all"
-                      >
-                        <Eye size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          requests.map((req) => {
+            const isExpanded = expandedId === req.id;
+            return (
+              <div 
+                key={req.id} 
+                className={`transition-all duration-300 rounded-2xl border overflow-hidden ${
+                  isExpanded 
+                    ? "bg-[#161b26] border-amber-500/20 shadow-xl shadow-amber-500/5" 
+                    : "bg-white/[0.02] border-white/[0.04] hover:border-white/[0.1] hover:bg-white/[0.03]"
+                }`}
+              >
+                {/* Collapsed Header */}
+                <div 
+                  onClick={() => toggleExpand(req)}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-5 cursor-pointer gap-4"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20 shrink-0">
+                      <FileText size={20} className="text-amber-400" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-3 mb-1">
+                        <h3 className="text-sm font-bold text-white">{req.fullName}</h3>
+                        {req.transactionId && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.06] text-amber-200 border border-white/[0.05] font-mono tracking-wider">
+                            {req.transactionId}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-4 text-[12px] text-slate-400">
+                        <span className="flex items-center gap-1.5"><Phone size={12} /> {req.phone}</span>
+                        <span className="flex items-center gap-1.5"><MapPin size={12} /> {req.city}</span>
+                        <span className="flex items-center gap-1.5"><Hash size={12} /> {aidTypeLabels[req.aidType] || req.aidType}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4 self-end sm:self-center">
+                    <div className="text-left hidden sm:block">
+                      <p className="text-[11px] text-slate-500 mb-1">تاريخ الطلب</p>
+                      <p className="text-[12px] text-slate-300 tabular-nums">
+                        {new Date(req.createdAt).toLocaleDateString("ar-EG", { month: 'long', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <StatusBadge status={req.status} />
+                    <div className={`p-2 rounded-xl transition-transform duration-300 ${isExpanded ? "bg-amber-500/10 text-amber-400 rotate-180" : "bg-white/[0.04] text-slate-400"}`}>
+                      <ChevronDown size={16} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expanded Details Content */}
+                {isExpanded && (
+                  <div className="border-t border-white/[0.04] bg-black/20 p-5 sm:p-6 flex flex-col lg:flex-row gap-6 animate-in slide-in-from-top-2 fade-in duration-200">
+                    
+                    {/* Left Side: Information */}
+                    <div className="flex-1 space-y-6">
+                      <div>
+                        <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+                          <AlertCircle size={16} className="text-amber-400" />
+                          البيانات الشاملة
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {[
+                            { label: "رقم الهوية/الجواز", value: req.idNumber },
+                            { label: "العنوان التفصيلي", value: req.address },
+                            { label: "نوع المساعدة", value: req.aidType },
+                            { label: "تاريخ التسجيل", value: new Date(req.createdAt).toLocaleString("ar-EG") },
+                          ].map((info, idx) => (
+                            <div key={idx} className="bg-white/[0.02] p-3 rounded-xl border border-white/[0.03]">
+                              <p className="text-[11px] text-slate-500 mb-1">{info.label}</p>
+                              <p className="text-[13px] text-slate-200 font-medium">{info.value}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {req.description && (
+                        <div>
+                          <h4 className="text-[12px] font-semibold text-slate-400 mb-2">تفاصيل الاستمارة / الوصف</h4>
+                          <div className="bg-white/[0.02] p-4 rounded-xl border border-white/[0.03] text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+                            {req.description}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Note: Images rendering can be added here if needed */}
+                    </div>
+
+                    {/* Right Side: Actions (Admin Controls) */}
+                    <div className="w-full lg:w-72 shrink-0 space-y-4">
+                      <div className="bg-white/[0.03] p-5 rounded-2xl border border-white/[0.05]">
+                        <h4 className="text-sm font-bold text-white mb-4">إجراءات الإدارة</h4>
+                        
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-[11px] font-semibold text-slate-500">حالة الطلب</label>
+                            <select
+                              value={editStatus}
+                              onChange={(e) => setEditStatus(e.target.value)}
+                              className="w-full bg-black/40 border border-white/[0.08] rounded-xl py-2.5 px-3 text-sm text-white focus:border-amber-500/50 outline-none transition-all appearance-none"
+                            >
+                              <option value="pending">معلّق - في انتظار المراجعة</option>
+                              <option value="processing">قيد المعالجة - جاري العمل عليه</option>
+                              <option value="completed">مكتمل - تم تقديم المساعدة</option>
+                              <option value="rejected">مرفوض - لا يستوفي الشروط</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-[11px] font-semibold text-slate-500">ملاحظات إدارية (داخلية)</label>
+                            <textarea
+                              value={editNotes}
+                              onChange={(e) => setEditNotes(e.target.value)}
+                              rows={4}
+                              placeholder="أضف ملاحظات تفيد الفريق..."
+                              className="w-full bg-black/40 border border-white/[0.08] rounded-xl py-2.5 px-3 text-sm text-white focus:border-amber-500/50 outline-none transition-all resize-none placeholder-slate-700"
+                            />
+                          </div>
+
+                          <button
+                            onClick={() => handleUpdate(req.id)}
+                            disabled={savingId === req.id}
+                            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-l from-amber-500 to-orange-500 text-white font-bold text-sm shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 transition-all disabled:opacity-50"
+                          >
+                            {savingId === req.id ? (
+                              <Loader2 size={16} className="animate-spin" />
+                            ) : (
+                              <Save size={16} />
+                            )}
+                            {savingId === req.id ? "جاري التحديث..." : "تحديث الطلب"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
-
-      {/* Detail Modal */}
-      {selectedRequest && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setSelectedRequest(null)}
-          />
-          <div className="relative z-10 w-full max-w-lg rounded-2xl bg-[#111827]/95 backdrop-blur-xl border border-white/[0.08] p-6 shadow-2xl max-h-[85vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-white">تفاصيل الطلب</h3>
-              <button
-                onClick={() => setSelectedRequest(null)}
-                className="p-2 rounded-xl hover:bg-white/[0.06] text-slate-500 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Info Grid */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              {[
-                { label: "الاسم", value: selectedRequest.fullName },
-                { label: "الهاتف", value: selectedRequest.phone },
-                { label: "رقم الهوية", value: selectedRequest.idNumber },
-                { label: "المدينة", value: selectedRequest.city },
-                { label: "العنوان", value: selectedRequest.address },
-                {
-                  label: "نوع المساعدة",
-                  value: aidTypeLabels[selectedRequest.aidType] || selectedRequest.aidType,
-                },
-              ].map((item) => (
-                <div key={item.label} className="space-y-1">
-                  <p className="text-[11px] font-semibold text-slate-600">{item.label}</p>
-                  <p className="text-sm text-slate-300">{item.value}</p>
-                </div>
-              ))}
-            </div>
-
-            {selectedRequest.description && (
-              <div className="mb-6 space-y-1">
-                <p className="text-[11px] font-semibold text-slate-600">الوصف</p>
-                <p className="text-sm text-slate-400 bg-white/[0.03] rounded-xl p-3 border border-white/[0.04]">
-                  {selectedRequest.description}
-                </p>
-              </div>
-            )}
-
-            {/* Status Update */}
-            <div className="space-y-4 pt-4 border-t border-white/[0.06]">
-              <div className="space-y-2">
-                <label className="text-[12px] font-semibold text-slate-500">
-                  تحديث الحالة
-                </label>
-                <select
-                  value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value)}
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl py-2.5 px-4 text-sm text-white input-glow transition-all appearance-none"
-                >
-                  <option value="pending" className="bg-[#111827]">معلّق</option>
-                  <option value="processing" className="bg-[#111827]">قيد المعالجة</option>
-                  <option value="completed" className="bg-[#111827]">مكتمل</option>
-                  <option value="rejected" className="bg-[#111827]">مرفوض</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[12px] font-semibold text-slate-500">
-                  ملاحظات
-                </label>
-                <textarea
-                  value={editNotes}
-                  onChange={(e) => setEditNotes(e.target.value)}
-                  rows={3}
-                  placeholder="أضف ملاحظات..."
-                  className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl py-2.5 px-4 text-sm text-white placeholder-slate-600 input-glow transition-all resize-none"
-                />
-              </div>
-
-              <button
-                onClick={handleUpdate}
-                disabled={saving}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-l from-emerald-500 to-teal-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all disabled:opacity-50"
-              >
-                {saving ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : (
-                  <Save size={16} />
-                )}
-                {saving ? "جاري الحفظ..." : "حفظ التغييرات"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

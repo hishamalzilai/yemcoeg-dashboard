@@ -6,6 +6,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     
+    const transactionId = formData.get("transactionId") as string;
     const fullName = formData.get("fullName") as string;
     const phone = formData.get("phone") as string;
     const idNumber = formData.get("idNumber") as string;
@@ -28,6 +29,7 @@ export async function POST(request: Request) {
     
     const aidRequest = await prisma.aidRequest.create({
       data: {
+        transactionId: transactionId || null,
         fullName, phone, idNumber, city, address, aidType, description,
         images: JSON.stringify(imageUrls),
       },
