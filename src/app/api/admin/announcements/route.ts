@@ -14,7 +14,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { title, content, active, priority } = await request.json();
+    const { title, content, imageUrl, active, priority } = await request.json();
     
     if (!title || !content) {
       return NextResponse.json({ error: "Title and content are required" }, { status: 400 });
@@ -24,6 +24,7 @@ export async function POST(request: Request) {
       data: {
         title,
         content,
+        imageUrl: imageUrl || null,
         active: active ?? true,
         priority: priority ?? 0,
       },

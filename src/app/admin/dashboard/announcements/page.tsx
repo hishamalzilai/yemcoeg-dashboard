@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Megaphone, Plus, Edit2, Trash2, Loader2, RefreshCw, X, AlertTriangle, Save } from "lucide-react";
+import { Megaphone, Plus, Edit2, Trash2, Loader2, RefreshCw, X, AlertTriangle, Save, Image as ImageIcon } from "lucide-react";
 
 interface Announcement {
   id: string;
   title: string;
   content: string;
+  imageUrl: string | null;
   active: boolean;
   priority: number;
   createdAt: string;
@@ -25,10 +26,12 @@ export default function AnnouncementsPage() {
   const [editingItem, setEditingItem] = useState<Announcement | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
     content: "",
+    imageUrl: "",
     active: true,
     priority: 0,
   });
@@ -56,14 +59,43 @@ export default function AnnouncementsPage() {
       setFormData({
         title: item.title,
         content: item.content,
+        imageUrl: item.imageUrl || "",
         active: item.active,
         priority: item.priority,
       });
     } else {
       setEditingItem(null);
-      setFormData({ title: "", content: "", active: true, priority: 0 });
+      setFormData({ title: "", content: "", imageUrl: "", active: true, priority: 0 });
     }
     setShowModal(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const uploadData = new FormData();
+      uploadData.append("file", file);
+
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: uploadData,
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setFormData(prev => ({ ...prev, imageUrl: data.url }));
+      } else {
+        alert("فشل رفع الصورة: " + (data.error || "خطأ غير معروف"));
+      }
+    } catch (error) {
+      console.error(error);
+      alert("حدث خطأ أثناء رفع الصورة");
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleSave = async () => {
@@ -76,7 +108,10 @@ export default function AnnouncementsPage() {
       await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          imageUrl: formData.imageUrl || null,
+        }),
       });
       
       setShowModal(false);
@@ -149,51 +184,60 @@ export default function AnnouncementsPage() {
             return (
               <div
                 key={item.id}
-                className="group flex flex-col p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] card-hover relative overflow-hidden"
+                className="group flex flex-col rounded-2xl bg-white/[0.03] border border-white/[0.06] card-hover relative overflow-hidden"
               >
                 {/* Urgent indicator line */}
                 {item.priority === 2 && (
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-red-500" />
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-red-500 z-10" />
                 )}
 
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold border ${p.color} ${p.border}`}>
-                      {p.label}
-                    </span>
-                    {!item.active && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold border text-slate-400 bg-slate-500/10 border-slate-500/20">
-                        غير نشط
+                {item.imageUrl && (
+                  <div className="w-full h-40 bg-white/[0.02] border-b border-white/[0.06] relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                  </div>
+                )}
+
+                <div className="p-5 flex-1 flex flex-col">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold border ${p.color} ${p.border}`}>
+                        {p.label}
                       </span>
-                    )}
+                      {!item.active && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold border text-slate-400 bg-slate-500/10 border-slate-500/20">
+                          غير نشط
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => handleOpenModal(item)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.1] transition-colors"
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(item.id)}
+                        disabled={deleting === item.id}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+                      >
+                        {deleting === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
-                      onClick={() => handleOpenModal(item)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.1] transition-colors"
-                    >
-                      <Edit2 size={14} />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(item.id)}
-                      disabled={deleting === item.id}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
-                    >
-                      {deleting === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                    </button>
+
+                  <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
+                    {item.priority === 2 && <AlertTriangle size={14} className="text-rose-400" />}
+                    {item.title}
+                  </h3>
+                  <p className="text-[12px] text-slate-400 leading-relaxed mb-4 flex-1">
+                    {item.content}
+                  </p>
+
+                  <div className="text-[11px] text-slate-500 pt-4 border-t border-white/[0.06]">
+                    نُشر في: {new Date(item.createdAt).toLocaleDateString("ar-EG")}
                   </div>
-                </div>
-
-                <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-                  {item.priority === 2 && <AlertTriangle size={14} className="text-rose-400" />}
-                  {item.title}
-                </h3>
-                <p className="text-[12px] text-slate-400 leading-relaxed mb-4 flex-1">
-                  {item.content}
-                </p>
-
-                <div className="text-[11px] text-slate-500 pt-4 border-t border-white/[0.06]">
-                  نُشر في: {new Date(item.createdAt).toLocaleDateString("ar-EG")}
                 </div>
               </div>
             );
@@ -239,6 +283,52 @@ export default function AnnouncementsPage() {
               </div>
 
               <div className="space-y-2">
+                <label className="text-[12px] font-semibold text-slate-400">صورة الإعلان (اختياري)</label>
+                <div className="flex flex-col gap-3">
+                  {formData.imageUrl && (
+                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-white/[0.06]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <button 
+                        onClick={() => setFormData({ ...formData, imageUrl: "" })}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-rose-500 transition-colors backdrop-blur-sm"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+                  
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                    />
+                    <div className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-dashed transition-all
+                      ${uploadingImage 
+                        ? 'bg-violet-500/10 border-violet-500/30 text-violet-400' 
+                        : 'bg-white/[0.02] border-white/[0.1] text-slate-400 hover:bg-white/[0.04] hover:border-white/[0.2]'
+                      }
+                    `}>
+                      {uploadingImage ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          <span className="text-sm font-semibold">جاري الرفع...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon size={16} />
+                          <span className="text-sm font-semibold">اضغط لاختيار صورة</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-[12px] font-semibold text-slate-400">الأهمية</label>
                 <select
                   value={formData.priority}
@@ -251,7 +341,7 @@ export default function AnnouncementsPage() {
                 </select>
               </div>
 
-              <label className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] cursor-pointer">
+              <label className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] cursor-pointer mt-4">
                 <input
                   type="checkbox"
                   checked={formData.active}
@@ -266,7 +356,7 @@ export default function AnnouncementsPage() {
 
               <button
                 onClick={handleSave}
-                disabled={saving || !formData.title || !formData.content}
+                disabled={saving || uploadingImage || !formData.title || !formData.content}
                 className="w-full flex items-center justify-center gap-2 py-3 mt-4 rounded-xl bg-gradient-to-l from-violet-500 to-purple-500 text-white font-bold text-sm shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all disabled:opacity-50"
               >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}

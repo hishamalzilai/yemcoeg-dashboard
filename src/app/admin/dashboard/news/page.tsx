@@ -27,6 +27,36 @@ export default function NewsPage() {
     published: true,
   });
 
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const uploadData = new FormData();
+      uploadData.append("file", file);
+
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: uploadData,
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setFormData(prev => ({ ...prev, imageUrl: data.url }));
+      } else {
+        alert("فشل رفع الصورة: " + (data.error || "خطأ غير معروف"));
+      }
+    } catch (error) {
+      console.error(error);
+      alert("حدث خطأ أثناء رفع الصورة");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const fetchNews = async () => {
     setLoading(true);
     try {
@@ -234,18 +264,52 @@ export default function NewsPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[12px] font-semibold text-slate-400">رابط الصورة (اختياري)</label>
-                <input
-                  type="url"
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="https://..."
-                  className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3 px-4 text-sm text-white input-glow transition-all text-left"
-                  dir="ltr"
-                />
+                <label className="text-[12px] font-semibold text-slate-400">صورة الخبر (اختياري)</label>
+                <div className="flex flex-col gap-3">
+                  {formData.imageUrl && (
+                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-white/[0.06]">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      <button 
+                        onClick={() => setFormData({ ...formData, imageUrl: "" })}
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-rose-500 transition-colors backdrop-blur-sm"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )}
+                  
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                    />
+                    <div className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-dashed transition-all
+                      ${uploadingImage 
+                        ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400' 
+                        : 'bg-white/[0.02] border-white/[0.1] text-slate-400 hover:bg-white/[0.04] hover:border-white/[0.2]'
+                      }
+                    `}>
+                      {uploadingImage ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          <span className="text-sm font-semibold">جاري الرفع...</span>
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon size={16} />
+                          <span className="text-sm font-semibold">اضغط لاختيار صورة</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <label className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] cursor-pointer">
+              <label className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] cursor-pointer mt-4">
                 <input
                   type="checkbox"
                   checked={formData.published}
@@ -260,7 +324,7 @@ export default function NewsPage() {
 
               <button
                 onClick={handleSave}
-                disabled={saving || !formData.title || !formData.content}
+                disabled={saving || uploadingImage || !formData.title || !formData.content}
                 className="w-full flex items-center justify-center gap-2 py-3 mt-4 rounded-xl bg-gradient-to-l from-cyan-500 to-blue-500 text-white font-bold text-sm shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 transition-all disabled:opacity-50"
               >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}

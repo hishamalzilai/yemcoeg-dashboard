@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { title, content, active, priority } = await request.json();
+    const { title, content, imageUrl, active, priority } = await request.json();
     const { id } = await params;
 
     const item = await prisma.announcement.update({
@@ -11,6 +11,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       data: {
         title,
         content,
+        imageUrl: imageUrl || null,
         active: active ?? true,
         priority: priority ?? 0,
       },
