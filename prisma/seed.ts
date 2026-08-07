@@ -4,24 +4,42 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = process.env.ADMIN_EMAIL || "admin@yemeni-community.com";
-  let password = process.env.ADMIN_PASSWORD_HASH;
-  
-  if (!password) {
-    password = await bcrypt.hash("admin123", 12);
-  }
+  const defaultPassword = await bcrypt.hash("123456", 12);
 
-  const admin = await prisma.admin.upsert({
-    where: { email },
+  const superadmin = await prisma.admin.upsert({
+    where: { email: "admin@yemeni.community" },
     update: {},
     create: {
-      email,
-      password,
-      name: "مدير النظام",
+      email: "admin@yemeni.community",
+      password: defaultPassword,
+      name: "مدير عام",
+      role: "superadmin"
     },
   });
 
-  console.log("Admin seeded:", admin.email);
+  const aidAdmin = await prisma.admin.upsert({
+    where: { email: "aid@yemeni.community" },
+    update: {},
+    create: {
+      email: "aid@yemeni.community",
+      password: defaultPassword,
+      name: "مشرف المساعدات",
+      role: "aid_admin"
+    },
+  });
+
+  const newsAdmin = await prisma.admin.upsert({
+    where: { email: "news@yemeni.community" },
+    update: {},
+    create: {
+      email: "news@yemeni.community",
+      password: defaultPassword,
+      name: "مشرف الأخبار",
+      role: "news_admin"
+    },
+  });
+
+  console.log("Seeded admins:", [superadmin.email, aidAdmin.email, newsAdmin.email]);
 }
 
 main()

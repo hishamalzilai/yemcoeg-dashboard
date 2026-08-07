@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Admin {
@@ -12,6 +12,7 @@ model Admin {
   email     String   @unique
   password  String   // hashed with bcrypt
   name      String
+  role      String   @default("superadmin") // superadmin | aid_admin | news_admin
   createdAt DateTime @default(now())
 }
 
@@ -68,4 +69,12 @@ model AppConfig {
   supportPhone  String @default("+20XXXXXXXXXX")
   whatsappApiUrl String?
   updatedAt     DateTime @updatedAt
+}
+
+model DeviceToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  deviceOs  String?  // 'android' | 'ios'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

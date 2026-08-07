@@ -14,9 +14,9 @@ interface Announcement {
 }
 
 const priorityConfig: Record<number, { label: string; color: string; border: string }> = {
-  0: { label: "عادي", color: "text-slate-400 bg-slate-500/10", border: "border-slate-500/20" },
-  1: { label: "هام", color: "text-amber-400 bg-amber-500/10", border: "border-amber-500/20" },
-  2: { label: "عاجل", color: "text-rose-400 bg-rose-500/10", border: "border-rose-500/20" },
+  0: { label: "عادي", color: "text-slate-600 bg-slate-100", border: "border-slate-200" },
+  1: { label: "هام", color: "text-orange-600 bg-orange-50", border: "border-orange-200" },
+  2: { label: "عاجل", color: "text-red-600 bg-red-50", border: "border-red-200" },
 };
 
 export default function AnnouncementsPage() {
@@ -141,25 +141,25 @@ export default function AnnouncementsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-violet-400 to-purple-500 shadow-lg shadow-violet-500/15">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 shadow-md shadow-slate-500/15">
             <Megaphone size={22} className="text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-black text-white">الإعلانات</h2>
+            <h2 className="text-xl font-black text-slate-900">الإعلانات</h2>
             <p className="text-[12px] text-slate-500">إدارة الإعلانات والتنبيهات</p>
           </div>
         </div>
         <div className="flex gap-2">
           <button
             onClick={fetchItems}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all text-sm font-medium"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all text-sm font-bold"
           >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             تحديث
           </button>
           <button
             onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-l from-violet-500 to-purple-500 text-white shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all text-sm font-bold"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white shadow-md shadow-slate-900/20 hover:bg-black hover:shadow-lg transition-all text-sm font-bold"
           >
             <Plus size={16} />
             إعلان جديد
@@ -170,12 +170,12 @@ export default function AnnouncementsPage() {
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 size={28} className="animate-spin text-violet-400" />
+          <Loader2 size={28} className="animate-spin text-slate-800" />
         </div>
       ) : items.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-600 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+        <div className="flex flex-col items-center justify-center py-20 text-slate-500 rounded-2xl bg-white border border-slate-200 shadow-sm">
           <Megaphone size={44} className="mb-3 opacity-30" />
-          <p className="text-sm font-medium">لا توجد إعلانات نشطة</p>
+          <p className="text-sm font-bold">لا توجد إعلانات نشطة</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -184,15 +184,15 @@ export default function AnnouncementsPage() {
             return (
               <div
                 key={item.id}
-                className="group flex flex-col rounded-2xl bg-white/[0.03] border border-white/[0.06] card-hover relative overflow-hidden"
+                className="group flex flex-col rounded-2xl bg-white border border-slate-200 shadow-sm hover:shadow-md card-hover relative overflow-hidden"
               >
                 {/* Urgent indicator line */}
                 {item.priority === 2 && (
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-rose-500 to-red-500 z-10" />
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-red-500 z-10" />
                 )}
 
                 {item.imageUrl && (
-                  <div className="w-full h-40 bg-white/[0.02] border-b border-white/[0.06] relative">
+                  <div className="w-full h-40 bg-slate-100 border-b border-slate-200 relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
                   </div>
@@ -201,11 +201,11 @@ export default function AnnouncementsPage() {
                 <div className="p-5 flex-1 flex flex-col">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-semibold border ${p.color} ${p.border}`}>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold border ${p.color} ${p.border}`}>
                         {p.label}
                       </span>
                       {!item.active && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-md font-semibold border text-slate-400 bg-slate-500/10 border-slate-500/20">
+                        <span className="text-[10px] px-2 py-0.5 rounded-md font-bold border text-slate-500 bg-slate-100 border-slate-200">
                           غير نشط
                         </span>
                       )}
@@ -213,29 +213,29 @@ export default function AnnouncementsPage() {
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => handleOpenModal(item)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.1] transition-colors"
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                       >
                         <Edit2 size={14} />
                       </button>
                       <button 
                         onClick={() => handleDelete(item.id)}
                         disabled={deleting === item.id}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors disabled:opacity-50"
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
                       >
                         {deleting === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                       </button>
                     </div>
                   </div>
 
-                  <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-                    {item.priority === 2 && <AlertTriangle size={14} className="text-rose-400" />}
+                  <h3 className="text-sm font-black text-slate-900 mb-2 flex items-center gap-2">
+                    {item.priority === 2 && <AlertTriangle size={14} className="text-red-600" />}
                     {item.title}
                   </h3>
-                  <p className="text-[12px] text-slate-400 leading-relaxed mb-4 flex-1">
+                  <p className="text-[12px] font-medium text-slate-600 leading-relaxed mb-4 flex-1">
                     {item.content}
                   </p>
 
-                  <div className="text-[11px] text-slate-500 pt-4 border-t border-white/[0.06]">
+                  <div className="text-[11px] font-bold text-slate-400 pt-4 border-t border-slate-100">
                     نُشر في: {new Date(item.createdAt).toLocaleDateString("ar-EG")}
                   </div>
                 </div>
@@ -248,50 +248,50 @@ export default function AnnouncementsPage() {
       {/* CRUD Modal */}
       {showModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowModal(false)} />
-          <div className="relative z-10 w-full max-w-lg rounded-2xl bg-[#111827]/95 backdrop-blur-xl border border-white/[0.08] p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+          <div className="relative z-10 w-full max-w-lg rounded-2xl bg-white backdrop-blur-xl border border-slate-200 p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-black text-slate-900">
                 {editingItem ? "تعديل الإعلان" : "إضافة إعلان جديد"}
               </h3>
-              <button onClick={() => setShowModal(false)} className="p-2 rounded-xl hover:bg-white/[0.06] text-slate-500 transition-colors">
+              <button onClick={() => setShowModal(false)} className="p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-colors">
                 <X size={18} />
               </button>
             </div>
             
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[12px] font-semibold text-slate-400">عنوان الإعلان</label>
+                <label className="text-[12px] font-bold text-slate-700">عنوان الإعلان</label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="أدخل عنواناً واضحاً..."
-                  className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3 px-4 text-sm text-white input-glow transition-all"
+                  className="w-full bg-white border border-slate-300 rounded-xl py-3 px-4 text-sm text-slate-900 focus:border-red-500 outline-none transition-all shadow-sm font-medium"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[12px] font-semibold text-slate-400">نص الإعلان</label>
+                <label className="text-[12px] font-bold text-slate-700">نص الإعلان</label>
                 <textarea
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                   rows={4}
                   placeholder="محتوى التنبيه أو الإعلان..."
-                  className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3 px-4 text-sm text-white input-glow transition-all resize-none"
+                  className="w-full bg-white border border-slate-300 rounded-xl py-3 px-4 text-sm text-slate-900 focus:border-red-500 outline-none transition-all resize-none shadow-sm font-medium"
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[12px] font-semibold text-slate-400">صورة الإعلان (اختياري)</label>
+                <label className="text-[12px] font-bold text-slate-700">صورة الإعلان (اختياري)</label>
                 <div className="flex flex-col gap-3">
                   {formData.imageUrl && (
-                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-white/[0.06]">
+                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-slate-200">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
                       <button 
                         onClick={() => setFormData({ ...formData, imageUrl: "" })}
-                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-rose-500 transition-colors backdrop-blur-sm"
+                        className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-white hover:bg-red-600 transition-colors backdrop-blur-sm"
                       >
                         <X size={14} />
                       </button>
@@ -308,19 +308,19 @@ export default function AnnouncementsPage() {
                     />
                     <div className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-dashed transition-all
                       ${uploadingImage 
-                        ? 'bg-violet-500/10 border-violet-500/30 text-violet-400' 
-                        : 'bg-white/[0.02] border-white/[0.1] text-slate-400 hover:bg-white/[0.04] hover:border-white/[0.2]'
+                        ? 'bg-slate-100 border-slate-300 text-slate-600' 
+                        : 'bg-slate-50 border-slate-300 text-slate-500 hover:bg-slate-100 hover:border-slate-400'
                       }
                     `}>
                       {uploadingImage ? (
                         <>
                           <Loader2 size={16} className="animate-spin" />
-                          <span className="text-sm font-semibold">جاري الرفع...</span>
+                          <span className="text-sm font-bold">جاري الرفع...</span>
                         </>
                       ) : (
                         <>
                           <ImageIcon size={16} />
-                          <span className="text-sm font-semibold">اضغط لاختيار صورة</span>
+                          <span className="text-sm font-bold">اضغط لاختيار صورة</span>
                         </>
                       )}
                     </div>
@@ -329,35 +329,35 @@ export default function AnnouncementsPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[12px] font-semibold text-slate-400">الأهمية</label>
+                <label className="text-[12px] font-bold text-slate-700">الأهمية</label>
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
-                  className="w-full bg-white/[0.03] border border-white/[0.06] rounded-xl py-3 px-4 text-sm text-white input-glow transition-all appearance-none"
+                  className="w-full bg-white border border-slate-300 rounded-xl py-3 px-4 text-sm text-slate-900 focus:border-red-500 outline-none transition-all appearance-none shadow-sm font-medium"
                 >
-                  <option value={0} className="bg-[#111827]">عادي</option>
-                  <option value={1} className="bg-[#111827]">هام (يظهر بلون مميز)</option>
-                  <option value={2} className="bg-[#111827]">عاجل (يظهر باللون الأحمر بأعلى القائمة)</option>
+                  <option value={0} className="bg-white">عادي</option>
+                  <option value={1} className="bg-white">هام (يظهر بلون مميز)</option>
+                  <option value={2} className="bg-white">عاجل (يظهر باللون الأحمر بأعلى القائمة)</option>
                 </select>
               </div>
 
-              <label className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] cursor-pointer mt-4">
+              <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 cursor-pointer mt-4">
                 <input
                   type="checkbox"
                   checked={formData.active}
                   onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-                  className="w-4 h-4 rounded border-slate-600 bg-white/[0.05] text-violet-500 focus:ring-violet-500/20"
+                  className="w-4 h-4 rounded border-slate-300 bg-white text-slate-900 focus:ring-slate-500/20"
                 />
                 <div>
-                  <p className="text-sm font-semibold text-white">إعلان نشط</p>
-                  <p className="text-[11px] text-slate-500">سيظهر للمستخدمين مباشرة عند تفعيل هذا الخيار</p>
+                  <p className="text-sm font-bold text-slate-900">إعلان نشط</p>
+                  <p className="text-[11px] font-medium text-slate-500">سيظهر للمستخدمين مباشرة عند تفعيل هذا الخيار</p>
                 </div>
               </label>
 
               <button
                 onClick={handleSave}
                 disabled={saving || uploadingImage || !formData.title || !formData.content}
-                className="w-full flex items-center justify-center gap-2 py-3 mt-4 rounded-xl bg-gradient-to-l from-violet-500 to-purple-500 text-white font-bold text-sm shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 py-3 mt-4 rounded-xl bg-slate-900 text-white font-bold text-sm shadow-md shadow-slate-900/20 hover:bg-black hover:shadow-lg transition-all disabled:opacity-50"
               >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
                 {saving ? "جاري الحفظ..." : "حفظ الإعلان"}

@@ -23,43 +23,43 @@ const sidebarLinks = [
     label: "لوحة التحكم",
     href: "/admin/dashboard",
     icon: LayoutDashboard,
-    color: "from-emerald-400 to-teal-500",
-    glowColor: "emerald",
+    color: "from-red-600 to-red-500",
   },
   {
     label: "طلبات المساعدة",
     href: "/admin/dashboard/aid-requests",
     icon: HandHeart,
-    color: "from-amber-400 to-orange-500",
-    glowColor: "amber",
+    color: "from-slate-900 to-slate-800",
   },
   {
     label: "الأخبار",
     href: "/admin/dashboard/news",
     icon: Newspaper,
-    color: "from-cyan-400 to-blue-500",
-    glowColor: "cyan",
+    color: "from-red-600 to-red-500",
   },
   {
     label: "الإعلانات",
     href: "/admin/dashboard/announcements",
     icon: Megaphone,
-    color: "from-violet-400 to-purple-500",
-    glowColor: "violet",
+    color: "from-slate-900 to-slate-800",
   },
   {
     label: "أرقام الطوارئ",
     href: "/admin/dashboard/emergency",
     icon: Phone,
-    color: "from-rose-400 to-pink-500",
-    glowColor: "rose",
+    color: "from-red-600 to-red-500",
+  },
+  {
+    label: "الإشعارات",
+    href: "/admin/dashboard/notifications",
+    icon: Bell,
+    color: "from-slate-900 to-slate-800",
   },
   {
     label: "الإعدادات",
     href: "/admin/dashboard/settings",
     icon: Settings,
     color: "from-slate-400 to-slate-500",
-    glowColor: "emerald",
   },
 ];
 
@@ -71,13 +71,34 @@ function Sidebar({
   onClose: () => void;
 }) {
   const pathname = usePathname();
+  const [role, setRole] = useState("superadmin");
+
+  useEffect(() => {
+    fetch("/api/admin/profile")
+      .then(res => res.json())
+      .then(data => {
+        if (data.role) setRole(data.role);
+      })
+      .catch(console.error);
+  }, []);
+
+  const visibleLinks = sidebarLinks.filter(link => {
+    if (role === "superadmin") return true;
+    if (role === "aid_admin") {
+      return ["/admin/dashboard", "/admin/dashboard/aid-requests", "/admin/dashboard/settings"].includes(link.href);
+    }
+    if (role === "news_admin") {
+      return ["/admin/dashboard", "/admin/dashboard/news", "/admin/dashboard/announcements", "/admin/dashboard/notifications", "/admin/dashboard/settings"].includes(link.href);
+    }
+    return true;
+  });
 
   return (
     <>
       {/* Mobile overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
         />
       )}
@@ -86,9 +107,9 @@ function Sidebar({
       <aside
         className={`
           fixed top-0 right-0 z-50 h-screen w-[280px]
-          bg-[#0b1222]/90 backdrop-blur-xl
-          border-l border-white/[0.06]
-          shadow-2xl shadow-black/40
+          bg-white/95 backdrop-blur-xl
+          border-l border-slate-200
+          shadow-2xl shadow-slate-200/50
           transform transition-transform duration-300 ease-in-out
           lg:translate-x-0 lg:static lg:z-auto
           ${isOpen ? "translate-x-0" : "translate-x-full"}
@@ -96,17 +117,15 @@ function Sidebar({
         `}
       >
         {/* Logo Section */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-white/[0.06]">
+        <div className="flex items-center justify-between px-5 py-5 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-red-600 to-red-500 flex items-center justify-center shadow-lg shadow-red-500/20">
                 <Shield size={20} className="text-white" />
               </div>
-              {/* Glow pulse behind logo */}
-              <div className="absolute inset-0 w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-500 opacity-30 blur-md animate-pulse" />
             </div>
             <div>
-              <h1 className="font-bold text-white text-[15px] leading-tight tracking-wide">
+              <h1 className="font-bold text-slate-900 text-[15px] leading-tight tracking-wide">
                 الجالية اليمنية
               </h1>
               <p className="text-[11px] text-slate-500 font-medium">
@@ -116,7 +135,7 @@ function Sidebar({
           </div>
           <button
             onClick={onClose}
-            className="lg:hidden p-2 rounded-xl hover:bg-white/5 text-slate-500 transition-all duration-200"
+            className="lg:hidden p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-all duration-200"
           >
             <X size={20} />
           </button>
@@ -124,10 +143,10 @@ function Sidebar({
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
-          <p className="px-3 mb-4 text-[10px] font-bold text-slate-600 uppercase tracking-[0.15em]">
+          <p className="px-3 mb-4 text-[10px] font-bold text-slate-400 uppercase tracking-[0.15em]">
             القائمة الرئيسية
           </p>
-          {sidebarLinks.map((link) => {
+          {visibleLinks.map((link) => {
             const isActive =
               pathname === link.href ||
               (link.href !== "/admin/dashboard" &&
@@ -144,14 +163,14 @@ function Sidebar({
                   transition-all duration-300 group
                   ${
                     isActive
-                      ? "bg-white/[0.07] text-white"
-                      : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200"
+                      ? "bg-red-50 text-red-700"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }
                 `}
               >
                 {/* Active indicator bar */}
                 {isActive && (
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-[60%] rounded-l-full bg-gradient-to-b from-emerald-400 to-cyan-400 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-[60%] rounded-l-full bg-gradient-to-b from-red-500 to-red-600 shadow-[0_0_8px_rgba(206,17,38,0.3)]" />
                 )}
 
                 {/* Icon container */}
@@ -160,19 +179,15 @@ function Sidebar({
                     relative p-2 rounded-xl transition-all duration-300
                     ${
                       isActive
-                        ? `bg-gradient-to-br ${link.color} shadow-lg shadow-emerald-500/10`
-                        : "bg-white/[0.04] group-hover:bg-white/[0.08]"
+                        ? `bg-gradient-to-br ${link.color} shadow-md shadow-slate-200/50`
+                        : "bg-slate-100 group-hover:bg-slate-200"
                     }
                   `}
                 >
                   <Icon
                     size={17}
-                    className={isActive ? "text-white" : "text-slate-400 group-hover:text-slate-300"}
+                    className={isActive ? "text-white" : "text-slate-500 group-hover:text-slate-700"}
                   />
-                  {/* Icon glow on active */}
-                  {isActive && (
-                    <div className={`absolute inset-0 rounded-xl bg-gradient-to-br ${link.color} opacity-30 blur-md`} />
-                  )}
                 </div>
 
                 <span className="flex-1">{link.label}</span>
@@ -180,7 +195,7 @@ function Sidebar({
                 {isActive && (
                   <ChevronLeft
                     size={14}
-                    className="text-emerald-400/70"
+                    className="text-red-400"
                   />
                 )}
               </Link>
@@ -189,15 +204,15 @@ function Sidebar({
         </nav>
 
         {/* Bottom Section */}
-        <div className="px-3 py-4 border-t border-white/[0.06]">
+        <div className="px-3 py-4 border-t border-slate-200">
           {/* Admin Info */}
-          <div className="flex items-center gap-3 px-3 py-3 mb-2 rounded-xl bg-white/[0.03]">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/10">
+          <div className="flex items-center gap-3 px-3 py-3 mb-2 rounded-xl bg-slate-50">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center shadow-md">
               <span className="text-white text-xs font-bold">م</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-slate-200 truncate">المسؤول</p>
-              <p className="text-[10px] text-slate-600">مدير النظام</p>
+              <p className="text-sm font-bold text-slate-900 truncate">المسؤول</p>
+              <p className="text-[10px] text-slate-500">مدير النظام</p>
             </div>
           </div>
 
@@ -222,10 +237,10 @@ function LogoutButton() {
     <button
       onClick={handleLogout}
       disabled={loading}
-      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium w-full
-        text-slate-500 hover:text-rose-400 hover:bg-rose-500/[0.08] transition-all duration-300 group"
+      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-bold w-full
+        text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all duration-300 group"
     >
-      <div className="p-2 rounded-xl bg-white/[0.04] group-hover:bg-rose-500/10 transition-all duration-300">
+      <div className="p-2 rounded-xl bg-slate-100 group-hover:bg-red-100 transition-all duration-300">
         <LogOut size={16} className={loading ? "animate-spin" : ""} />
       </div>
       <span>{loading ? "جاري الخروج..." : "تسجيل الخروج"}</span>
@@ -239,6 +254,8 @@ function TopHeader({
   onMenuClick: () => void;
 }) {
   const [currentTime, setCurrentTime] = useState("");
+  const [pendingCount, setPendingCount] = useState(0);
+  const router = useRouter();
 
   useEffect(() => {
     const updateTime = () => {
@@ -257,18 +274,37 @@ function TopHeader({
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      try {
+        const res = await fetch("/api/admin/forms?status=pending");
+        if (res.ok) {
+          const data = await res.json();
+          setPendingCount(data.length);
+        }
+      } catch (error) {
+        console.error("Failed to fetch pending forms", error);
+      }
+    };
+    
+    fetchPendingCount();
+    // Poll every 1 minute
+    const interval = setInterval(fetchPendingCount, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-30 bg-[#0b1222]/60 backdrop-blur-xl border-b border-white/[0.04]">
+    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-200">
       <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 h-[68px]">
         <div className="flex items-center gap-4">
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white transition-all duration-200"
+            className="lg:hidden p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-all duration-200"
           >
             <Menu size={20} />
           </button>
           <div>
-            <h2 className="text-[17px] font-bold text-white flex items-center gap-2">
+            <h2 className="text-[17px] font-bold text-slate-900 flex items-center gap-2">
               مرحباً بك
               <span className="text-xl">👋</span>
             </h2>
@@ -280,27 +316,35 @@ function TopHeader({
 
         <div className="flex items-center gap-3">
           {/* Notification Bell */}
-          <button className="relative p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white transition-all duration-200">
+          <button 
+            onClick={() => router.push('/admin/dashboard/aid-requests')}
+            className="relative p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-all duration-200"
+            title="طلبات المساعدة"
+          >
             <Bell size={18} />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-emerald-400 rounded-full shadow-lg shadow-emerald-400/50" />
+            {pendingCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white shadow-md shadow-red-500/50">
+                {pendingCount > 99 ? '99+' : pendingCount}
+              </span>
+            )}
           </button>
 
           {/* Divider */}
-          <div className="h-8 w-px bg-white/[0.06] hidden sm:block" />
+          <div className="h-8 w-px bg-slate-200 hidden sm:block" />
 
           {/* User Avatar */}
           <div className="flex items-center gap-2.5">
             <div className="relative">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/15">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center shadow-sm">
                 <span className="text-white text-xs font-bold">م</span>
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#0b1222] shadow-sm shadow-emerald-400/50" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white shadow-sm" />
             </div>
             <div className="hidden sm:block">
-              <span className="text-sm font-semibold text-slate-200">
+              <span className="text-sm font-bold text-slate-900">
                 المسؤول
               </span>
-              <p className="text-[10px] text-slate-600">متصل</p>
+              <p className="text-[10px] text-slate-500">متصل</p>
             </div>
           </div>
         </div>
@@ -317,12 +361,12 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div dir="rtl" className="min-h-screen font-cairo relative">
-      {/* Background decorative orbs */}
+    <div dir="rtl" className="min-h-screen font-cairo relative bg-slate-50 text-slate-900">
+      {/* Background decorative orbs (Very subtle for light mode) */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="orb w-[500px] h-[500px] bg-emerald-600 -top-40 -right-40" />
-        <div className="orb w-[400px] h-[400px] bg-cyan-600 bottom-20 -left-40" />
-        <div className="orb w-[300px] h-[300px] bg-violet-600 top-1/2 right-1/3 opacity-10" />
+        <div className="orb w-[500px] h-[500px] bg-red-600 -top-40 -right-40 opacity-5" />
+        <div className="orb w-[400px] h-[400px] bg-slate-900 bottom-20 -left-40 opacity-[0.03]" />
+        <div className="orb w-[300px] h-[300px] bg-red-500 top-1/2 right-1/3 opacity-[0.02]" />
       </div>
 
       <div className="relative z-10 flex min-h-screen">
@@ -343,8 +387,8 @@ export default function DashboardLayout({
           </main>
 
           {/* Footer */}
-          <footer className="px-6 py-4 border-t border-white/[0.04] bg-[#0b1222]/40 backdrop-blur-sm">
-            <p className="text-center text-[11px] text-slate-600 font-medium">
+          <footer className="px-6 py-4 border-t border-slate-200 bg-white/60 backdrop-blur-sm">
+            <p className="text-center text-[11px] text-slate-500 font-bold">
               © {new Date().getFullYear()} الجالية اليمنية — جميع الحقوق محفوظة
             </p>
           </footer>

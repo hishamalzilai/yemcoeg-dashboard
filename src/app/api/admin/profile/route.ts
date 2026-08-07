@@ -9,7 +9,7 @@ export async function GET() {
 
     const admin = await prisma.admin.findUnique({
       where: { id: session.adminId },
-      select: { email: true, name: true }
+      select: { email: true, name: true, role: true }
     });
     
     return NextResponse.json(admin);

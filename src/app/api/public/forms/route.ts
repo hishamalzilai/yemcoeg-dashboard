@@ -38,16 +38,24 @@ export async function POST(request: Request) {
     // Trigger n8n webhook
     const n8nUrl = process.env.N8N_WEBHOOK_URL;
     if (n8nUrl) {
-      fetch(n8nUrl + "/new-aid-request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone, name: fullName, requestId: aidRequest.id }),
-      }).catch(err => console.error("N8n error:", err));
+      console.log(`Sending n8n webhook to: ${n8nUrl}/new-aid-request`);
+      try {
+        await fetch(n8nUrl + "/new-aid-request", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone, name: fullName, requestId: aidRequest.transactionId || aidRequest.id.split('-')[0].toUpperCase() }),
+        });
+        console.log("n8n webhook sent successfully");
+      } catch (err) {
+        console.error("N8n error:", err);
+      }
+    } else {
+      console.log("N8N_WEBHOOK_URL is not set in environment variables");
     }
     
-    return NextResponse.json({ success: true, requestId: aidRequest.id });
+    return NextResponse.json({ success: true, requestId: aidRequest.transactionId || aidRequest.id.split('-')[0].toUpperCase() });
   } catch (error) {
-    console.error(error);
+    console.error("Error submitting form:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

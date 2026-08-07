@@ -16,6 +16,7 @@
 # next.js
 /.next/
 /out/
+/public/uploads
 
 # production
 /build
@@ -54,3 +55,4 @@ next-env.d.ts
 skills-lock.json
 CLAUDE.md
 
+firebase-admin.json

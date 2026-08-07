@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     }
 
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    const session = await encrypt({ adminId: admin.id, email: admin.email, name: admin.name, expires });
+    const session = await encrypt({ adminId: admin.id, email: admin.email, name: admin.name, role: admin.role, expires });
 
     const response = NextResponse.json({ success: true });
     response.headers.set(

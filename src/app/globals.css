@@ -9,29 +9,29 @@
   --color-brand-red: #CE1126;
   --color-brand-black: #000000;
 
-  /* Dark Theme Palette */
-  --color-surface-primary: #0f172a;
-  --color-surface-secondary: #1e293b;
-  --color-surface-elevated: #1e293b;
-  --color-surface-card: rgba(30, 41, 59, 0.6);
-  --color-surface-glass: rgba(15, 23, 42, 0.7);
+  /* Light Theme Palette (Yemeni Flag Base) */
+  --color-surface-primary: #ffffff;
+  --color-surface-secondary: #f8fafc;
+  --color-surface-elevated: #ffffff;
+  --color-surface-card: rgba(255, 255, 255, 0.9);
+  --color-surface-glass: rgba(255, 255, 255, 0.85);
 
   /* Accent Glow */
-  --color-accent-emerald: #10b981;
-  --color-accent-teal: #14b8a6;
-  --color-accent-cyan: #06b6d4;
-  --color-accent-amber: #f59e0b;
-  --color-accent-rose: #f43f5e;
-  --color-accent-violet: #8b5cf6;
+  --color-accent-emerald: #CE1126; /* Red */
+  --color-accent-teal: #000000;    /* Black */
+  --color-accent-cyan: #CE1126;
+  --color-accent-amber: #000000;
+  --color-accent-rose: #CE1126;
+  --color-accent-violet: #000000;
 
   /* Text */
-  --color-text-primary: #f1f5f9;
-  --color-text-secondary: #94a3b8;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #334155;
   --color-text-muted: #64748b;
 
   /* Border */
-  --color-border-subtle: rgba(148, 163, 184, 0.1);
-  --color-border-glow: rgba(16, 185, 129, 0.3);
+  --color-border-subtle: rgba(15, 23, 42, 0.1);
+  --color-border-glow: rgba(206, 17, 38, 0.3);
 }
 
 /* ============================
@@ -112,8 +112,8 @@
 }
 
 body {
-  background: linear-gradient(135deg, #0f172a 0%, #0c1425 40%, #111827 100%);
-  color: #f1f5f9;
+  background: #f8fafc;
+  color: #0f172a;
   min-height: 100vh;
 }
 
@@ -123,17 +123,17 @@ body {
 
 /* Glass effect */
 .glass {
-  background: rgba(15, 23, 42, 0.6);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 .glass-light {
-  background: rgba(30, 41, 59, 0.4);
+  background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(148, 163, 184, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.05);
 }
 
 /* Glow effects */
@@ -218,7 +218,7 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.04),
+    rgba(206, 17, 38, 0.08),
     transparent
   );
   transition: left 0.5s ease;
@@ -249,9 +249,9 @@ body {
 /* Input focus glow */
 .input-glow:focus {
   outline: none;
-  border-color: rgba(16, 185, 129, 0.5);
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1),
-              0 0 20px rgba(16, 185, 129, 0.05);
+  border-color: rgba(206, 17, 38, 0.5);
+  box-shadow: 0 0 0 3px rgba(206, 17, 38, 0.1),
+              0 0 20px rgba(206, 17, 38, 0.05);
 }
 
 /* Button gradient shine */

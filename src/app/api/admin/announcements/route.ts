@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendPushNotificationToAll } from "@/lib/notifications";
 
 export async function GET() {
   try {
@@ -29,6 +30,27 @@ export async function POST(request: Request) {
         priority: priority ?? 0,
       },
     });
+
+    if (item.active) {
+      // Send notification in background
+      sendPushNotificationToAll("إعلان هام 📢", item.title);
+
+      // Trigger n8n webhook for WhatsApp announcement
+      const n8nUrl = process.env.N8N_WEBHOOK_URL;
+      if (n8nUrl) {
+        console.log(`Sending n8n webhook for announcement to: ${n8nUrl}/announcement`);
+        fetch(n8nUrl + "/announcement", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            title: item.title,
+            content: item.content,
+            priority: item.priority,
+            imageUrl: item.imageUrl
+          }),
+        }).catch(err => console.error("N8n error:", err));
+      }
+    }
     
     return NextResponse.json(item, { status: 201 });
   } catch (error) {
