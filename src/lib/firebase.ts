@@ -7,15 +7,23 @@ let app: App;
 
 if (!getApps().length) {
   try {
-    const serviceAccountPath = path.join(process.cwd(), 'firebase-admin.json');
-    if (fs.existsSync(serviceAccountPath)) {
+    const envJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    if (envJson) {
       app = initializeApp({
-        credential: cert(serviceAccountPath),
+        credential: cert(JSON.parse(envJson)),
       });
-      console.log('Firebase Admin initialized successfully');
+      console.log('Firebase Admin initialized successfully from ENV');
     } else {
-      console.error('firebase-admin.json not found!');
-      app = initializeApp();
+      const serviceAccountPath = path.join(process.cwd(), 'firebase-admin.json');
+      if (fs.existsSync(serviceAccountPath)) {
+        app = initializeApp({
+          credential: cert(serviceAccountPath),
+        });
+        console.log('Firebase Admin initialized successfully from file');
+      } else {
+        console.error('FIREBASE_SERVICE_ACCOUNT_JSON env and firebase-admin.json file not found!');
+        app = initializeApp();
+      }
     }
   } catch (error) {
     console.error('Firebase admin initialization error', error);
