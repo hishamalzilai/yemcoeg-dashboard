@@ -11,6 +11,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "البريد الإلكتروني وكلمة المرور مطلوبان" }, { status: 400 });
     }
 
+    // Auto-seed admins if database is empty
+    const adminCount = await prisma.admin.count();
+    if (adminCount === 0) {
+      const defaultPassword = await bcrypt.hash("123456", 12);
+      await prisma.admin.createMany({
+        data: [
+          { email: "admin@yemeni.community", password: defaultPassword, name: "مدير عام", role: "superadmin" },
+          { email: "aid@yemeni.community", password: defaultPassword, name: "مشرف المساعدات", role: "aid_admin" },
+          { email: "news@yemeni.community", password: defaultPassword, name: "مشرف الأخبار", role: "news_admin" },
+        ]
+      });
+    }
+
     const admin = await prisma.admin.findUnique({
       where: { email },
     });
