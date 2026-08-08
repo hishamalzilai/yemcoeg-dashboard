@@ -3,24 +3,22 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
-    const { trackingId, idNumber } = await request.json();
+    const { trackingId } = await request.json();
 
-    if (!trackingId || !idNumber) {
+    if (!trackingId) {
       return NextResponse.json(
-        { error: "رقم التتبع ورقم الهوية مطلوبان" },
+        { error: "رقم التتبع مطلوب" },
         { status: 400 }
       );
     }
 
     // Find the aid request using either the explicit transactionId or the internal UUID prefix
-    // along with the matching idNumber for security.
     const aidRequest = await prisma.aidRequest.findFirst({
       where: {
         OR: [
           { transactionId: trackingId },
           { id: { startsWith: trackingId.toLowerCase() } }
-        ],
-        idNumber: idNumber,
+        ]
       },
       select: {
         id: true,
