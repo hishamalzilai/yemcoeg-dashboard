@@ -33,21 +33,6 @@ export async function POST(request: Request) {
     if (news.published) {
       // Send notification in background
       sendPushNotificationToAll("خبر جديد 📰", news.title);
-
-      // Trigger n8n webhook for WhatsApp news broadcast
-      const n8nUrl = process.env.N8N_WEBHOOK_URL;
-      if (n8nUrl) {
-        console.log(`Sending n8n webhook for news to: ${n8nUrl}/news`);
-        fetch(n8nUrl + "/news", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ 
-            title: news.title,
-            content: news.content,
-            imageUrl: news.imageUrl
-          }),
-        }).catch(err => console.error("N8n error:", err));
-      }
     }
     
     return NextResponse.json(news, { status: 201 });

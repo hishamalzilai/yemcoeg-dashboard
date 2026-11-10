@@ -17,7 +17,11 @@ import {
   Phone,
   Hash,
   AlertCircle,
-  Download
+  Download,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  X
 } from "lucide-react";
 import * as XLSX from "xlsx";
 
@@ -103,25 +107,87 @@ export default function AidRequestsPage() {
   const [editNotes, setEditNotes] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
 
+  // Pagination (20 per page, handled by the API)
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // "Delete all data" dialog
+  const [wipeOpen, setWipeOpen] = useState(false);
+  const [wipeText, setWipeText] = useState("");
+  const [wiping, setWiping] = useState(false);
+  const [wipeError, setWipeError] = useState("");
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const next = search.trim();
+      setDebouncedSearch((prev) => {
+        if (prev !== next) setPage(1); // new search → back to the first page
+        return next;
+      });
+    }, 350);
+    return () => clearTimeout(t);
+  }, [search]);
+
   const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       if (statusFilter) params.set("status", statusFilter);
-      if (search) params.set("search", search);
+      if (debouncedSearch) params.set("search", debouncedSearch);
+      params.set("page", String(page));
       const res = await fetch(`/api/admin/forms?${params}`);
       const data = await res.json();
-      setRequests(data);
+      if (!res.ok) throw new Error(data?.error || "Failed to load");
+      setRequests(data.items);
+      setTotal(data.total);
+      setTotalPages(data.totalPages);
+      setPageSize(data.pageSize);
+      setCounts(data.counts);
+      if (data.page !== page) setPage(data.page);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, search]);
+  }, [statusFilter, debouncedSearch, page]);
 
   useEffect(() => {
     fetchRequests();
   }, [fetchRequests]);
+
+  const goToPage = (p: number) => {
+    setExpandedId(null);
+    setPage(p);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleWipe = async () => {
+    setWiping(true);
+    setWipeError("");
+    try {
+      const res = await fetch("/api/admin/forms", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "DELETE_ALL_AID_REQUESTS" }),
+      });
+      if (!res.ok) throw new Error();
+      setWipeOpen(false);
+      setWipeText("");
+      setExpandedId(null);
+      setStatusFilter("");
+      setSearch("");
+      if (page === 1) fetchRequests();
+      else setPage(1);
+    } catch {
+      setWipeError("تعذّر حذف البيانات، حاول مرة أخرى.");
+    } finally {
+      setWiping(false);
+    }
+  };
 
   const toggleExpand = (req: AidRequest) => {
     if (expandedId === req.id) {
@@ -151,15 +217,30 @@ export default function AidRequestsPage() {
   };
 
   const statusCounts = {
-    all: requests.length,
-    pending: requests.filter((r) => r.status === "pending").length,
-    processing: requests.filter((r) => r.status === "processing").length,
-    completed: requests.filter((r) => r.status === "completed").length,
-    rejected: requests.filter((r) => r.status === "rejected").length,
+    all: counts.all ?? 0,
+    pending: counts.pending ?? 0,
+    processing: counts.processing ?? 0,
+    completed: counts.completed ?? 0,
+    rejected: counts.rejected ?? 0,
   };
 
-  const exportToExcel = () => {
-    const formattedData = requests.map(req => {
+  const exportToExcel = async () => {
+    // Export every request matching the current filters, not just the visible page
+    const params = new URLSearchParams();
+    if (statusFilter) params.set("status", statusFilter);
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    let allRequests: AidRequest[] = [];
+    try {
+      const res = await fetch(`/api/admin/forms?${params}`);
+      if (!res.ok) throw new Error();
+      allRequests = await res.json();
+    } catch (e) {
+      console.error(e);
+      alert("تعذّر تحميل الطلبات للتصدير");
+      return;
+    }
+
+    const formattedData = allRequests.map(req => {
       let imageLinks = "لا يوجد";
       try {
         const parsedImages = JSON.parse(req.images);
@@ -228,7 +309,18 @@ export default function AidRequestsPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => {
+              setWipeText("");
+              setWipeError("");
+              setWipeOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition-all text-sm font-bold"
+          >
+            <Trash2 size={16} />
+            حذف جميع البيانات
+          </button>
           <button
             onClick={exportToExcel}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-all text-sm font-bold"
@@ -260,6 +352,7 @@ export default function AidRequestsPage() {
             onClick={() => {
               setStatusFilter(tab.key);
               setExpandedId(null);
+              setPage(1);
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-bold whitespace-nowrap transition-all
               ${
@@ -485,6 +578,105 @@ export default function AidRequestsPage() {
           })
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && total > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+          <p className="text-[12px] text-slate-500 font-semibold tabular-nums">
+            عرض {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} من {total} طلب
+          </p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => goToPage(page - 1)}
+                disabled={page <= 1}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={16} />
+                السابق
+              </button>
+              <span className="px-3 text-[13px] text-slate-700 font-bold tabular-nums">
+                صفحة {page} من {totalPages}
+              </span>
+              <button
+                onClick={() => goToPage(page + 1)}
+                disabled={page >= totalPages}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                التالي
+                <ChevronLeft size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Delete-all confirmation dialog */}
+      {wipeOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+          onClick={() => !wiping && setWipeOpen(false)}
+        >
+          <div
+            className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-xl p-6 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-rose-100 text-rose-600">
+                  <Trash2 size={20} />
+                </div>
+                <h3 className="text-lg font-black text-slate-900">حذف جميع البيانات</h3>
+              </div>
+              <button
+                onClick={() => setWipeOpen(false)}
+                disabled={wiping}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                aria-label="إغلاق"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-[13px] text-rose-800 leading-relaxed font-medium space-y-1">
+              <p>سيتم حذف <b>جميع طلبات المساعدة</b> بكل حالاتها مع الصور المرفقة بها <b>نهائياً</b>.</p>
+              <p>لا يمكن التراجع عن هذه العملية.</p>
+            </div>
+
+            <button
+              onClick={exportToExcel}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-all text-sm font-bold"
+            >
+              <Download size={16} />
+              احفظ نسخة Excel قبل الحذف
+            </button>
+
+            <div className="space-y-2">
+              <label className="text-[12px] font-bold text-slate-600">
+                للتأكيد اكتب كلمة <span className="text-rose-600">حذف</span>
+              </label>
+              <input
+                type="text"
+                value={wipeText}
+                onChange={(e) => setWipeText(e.target.value)}
+                disabled={wiping}
+                className="w-full bg-white border border-slate-300 rounded-xl py-2.5 px-3 text-sm text-slate-900 focus:border-rose-500 outline-none transition-all"
+              />
+            </div>
+
+            {wipeError && <p className="text-[12px] text-rose-600 font-bold">{wipeError}</p>}
+
+            <button
+              onClick={handleWipe}
+              disabled={wipeText.trim() !== "حذف" || wiping}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-rose-600 text-white font-bold text-sm shadow-md shadow-rose-600/20 hover:bg-rose-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {wiping ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+              {wiping ? "جاري الحذف..." : "حذف جميع البيانات نهائياً"}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

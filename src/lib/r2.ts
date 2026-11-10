@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectsCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
 
 const R2_ENDPOINT = process.env.R2_ENDPOINT || "";
@@ -56,4 +56,32 @@ export async function uploadImage(file: File): Promise<string | null> {
     console.error("Error uploading to R2:", error);
     return null;
   }
+}
+
+/** Deletes images previously returned by uploadImage. Returns how many were deleted; never throws. */
+export async function deleteImages(urls: string[]): Promise<number> {
+  if (!s3Client || urls.length === 0) return 0;
+
+  const prefix = `${R2_PUBLIC_URL}/`;
+  const keys = urls
+    .filter((u) => R2_PUBLIC_URL && u.startsWith(prefix))
+    .map((u) => u.slice(prefix.length))
+    .filter(Boolean);
+
+  let deleted = 0;
+  for (let i = 0; i < keys.length; i += 1000) {
+    const batch = keys.slice(i, i + 1000);
+    try {
+      const res = await s3Client.send(
+        new DeleteObjectsCommand({
+          Bucket: R2_BUCKET_NAME,
+          Delete: { Objects: batch.map((Key) => ({ Key })), Quiet: true },
+        })
+      );
+      deleted += batch.length - (res.Errors?.length ?? 0);
+    } catch (error) {
+      console.error("Error deleting images from R2:", error);
+    }
+  }
+  return deleted;
 }
