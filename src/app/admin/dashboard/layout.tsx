@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   Shield,
   Bell,
+  MapPin,
 } from "lucide-react";
 
 const sidebarLinks = [
@@ -50,10 +51,16 @@ const sidebarLinks = [
     color: "from-red-600 to-red-500",
   },
   {
+    label: "معلومات التواصل",
+    href: "/admin/dashboard/contact",
+    icon: MapPin,
+    color: "from-slate-900 to-slate-800",
+  },
+  {
     label: "الإشعارات",
     href: "/admin/dashboard/notifications",
     icon: Bell,
-    color: "from-slate-900 to-slate-800",
+    color: "from-red-600 to-red-500",
   },
   {
     label: "الإعدادات",

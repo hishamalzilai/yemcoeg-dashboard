@@ -71,6 +71,24 @@ model AppConfig {
   updatedAt     DateTime @updatedAt
 }
 
+// Contact page info shown in the mobile app (single row, id = "main").
+// The table is created at startup by src/lib/contact-info.ts (ensureContactInfoTable).
+model ContactInfo {
+  id           String   @id @default("main")
+  address      String   @default("")
+  phone        String   @default("")
+  supportPhone String   @default("")
+  email        String   @default("")
+  whatsapp     String   @default("")
+  facebookUrl  String   @default("")
+  instagramUrl String   @default("")
+  xUrl         String   @default("")
+  latitude     Float    @default(30.0405289)
+  longitude    Float    @default(31.2071998)
+  mapUrl       String   @default("")
+  updatedAt    DateTime @default(now()) @updatedAt
+}
+
 model DeviceToken {
   id        String   @id @default(uuid())
   token     String   @unique
