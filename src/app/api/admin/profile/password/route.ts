@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import bcrypt from "bcryptjs";
+import { passwordProblem } from "@/lib/admin-users";
 
 export async function PUT(request: Request) {
   try {
@@ -20,6 +21,9 @@ export async function PUT(request: Request) {
     if (!isValid) {
       return NextResponse.json({ error: "كلمة المرور الحالية غير صحيحة" }, { status: 400 });
     }
+
+    const problem = passwordProblem(newPassword);
+    if (problem) return NextResponse.json({ error: problem }, { status: 400 });
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 

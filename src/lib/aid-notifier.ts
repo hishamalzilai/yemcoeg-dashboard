@@ -4,7 +4,7 @@
 // src/instrumentation.ts.
 
 import { prisma } from "@/lib/prisma";
-import { sendWhatsApp, aidRequestReceivedMessage } from "@/lib/whatsapp";
+import { sendAidConfirmation } from "@/lib/whatsapp";
 
 const INTERVAL_MS = 5_000;
 // Only confirm recent requests, so old rows are never messaged after a deploy.
@@ -43,10 +43,16 @@ async function tick() {
       if (claimed.count !== 1) continue;
 
       const requestId = r.transactionId || r.id.split("-")[0].toUpperCase();
-      const result = await sendWhatsApp(r.phone, aidRequestReceivedMessage(r.fullName, requestId));
+      const result = await sendAidConfirmation(r.phone, r.fullName, requestId);
 
       if (result === "sent") {
         attempts.delete(r.id);
+      } else if (result === "phone-limit") {
+        attempts.delete(r.id); // too many for this number: stays marked, no message
+      } else if (result === "global-limit") {
+        // Hourly cap reached: put it back and wait, without using up retry attempts
+        await prisma.aidRequest.update({ where: { id: r.id }, data: { whatsappSent: false } });
+        break;
       } else if (result === "retry") {
         const n = (prev?.n ?? 0) + 1;
         if (n < MAX_ATTEMPTS) {

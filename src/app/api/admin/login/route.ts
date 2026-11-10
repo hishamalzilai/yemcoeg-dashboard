@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { encrypt } from "@/lib/auth";
+import { DEFAULT_ADMIN_PASSWORD } from "@/lib/security-setup";
 
 export async function POST(request: Request) {
   try {
@@ -11,22 +12,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "البريد الإلكتروني وكلمة المرور مطلوبان" }, { status: 400 });
     }
 
-    let admin = await prisma.admin.findUnique({
-      where: { email },
+    const admin = await prisma.admin.findFirst({
+      where: { email: { equals: String(email).trim(), mode: "insensitive" } },
     });
-
-    // Auto-seed if not found (for easy setup)
-    if (!admin && email === "admin@yemeni.community" && password === "123456") {
-      const defaultPassword = await bcrypt.hash("123456", 12);
-      await prisma.admin.createMany({
-        data: [
-          { email: "admin@yemeni.community", password: defaultPassword, name: "مدير عام", role: "superadmin" },
-          { email: "aid@yemeni.community", password: defaultPassword, name: "مشرف المساعدات", role: "aid_admin" },
-          { email: "news@yemeni.community", password: defaultPassword, name: "مشرف الأخبار", role: "news_admin" },
-        ]
-      });
-      admin = await prisma.admin.findUnique({ where: { email } });
-    }
 
     if (!admin) {
       return NextResponse.json({ error: "بيانات الدخول غير صحيحة" }, { status: 401 });
@@ -36,6 +24,14 @@ export async function POST(request: Request) {
 
     if (!isValid) {
       return NextResponse.json({ error: "بيانات الدخول غير صحيحة" }, { status: 401 });
+    }
+
+    // This password is published in the project's history, so it must never grant access.
+    if (password === DEFAULT_ADMIN_PASSWORD) {
+      return NextResponse.json(
+        { error: "كلمة المرور الافتراضية لم تعد مسموحة. اضبط ADMIN_NEW_PASSWORD في إعدادات السيرفر ثم أعد النشر." },
+        { status: 403 },
+      );
     }
 
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);

@@ -37,3 +37,21 @@ export async function deleteSupabaseFiles(urls: string[]): Promise<number> {
   }
   return deleted;
 }
+
+const AID_ATTACHMENTS_PREFIX = `${PUBLIC_PATH}aid_requests/`;
+
+/** Short-lived link to a private aid-request attachment, from its stored public URL. */
+export async function signedAttachmentUrl(storedUrl: string): Promise<string | null> {
+  const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/+$/, "");
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+  const base = supabaseUrl + AID_ATTACHMENTS_PREFIX;
+  if (!supabaseUrl || !serviceKey || !storedUrl.startsWith(base)) return null;
+
+  const path = decodeURIComponent(storedUrl.slice(base.length).split("?")[0]);
+  if (!path || path.includes("..")) return null;
+
+  const supabase = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
+  const { data, error } = await supabase.storage.from("aid_requests").createSignedUrl(path, 120);
+  if (error || !data) return null;
+  return data.signedUrl;
+}

@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { uploadImage } from "@/lib/r2";
-import { sendWhatsApp, aidRequestReceivedMessage } from "@/lib/whatsapp";
+import { sendAidConfirmation } from "@/lib/whatsapp";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
   try {
+    if (!rateLimit(`forms:${clientIp(request)}`, 5, 60 * 60_000)) {
+      return NextResponse.json({ error: "محاولات كثيرة. يرجى المحاولة لاحقاً." }, { status: 429 });
+    }
+
     const formData = await request.formData();
     
     const transactionId = formData.get("transactionId") as string;
@@ -41,7 +46,7 @@ export async function POST(request: Request) {
     const requestId = aidRequest.transactionId || aidRequest.id.split('-')[0].toUpperCase();
 
     // WhatsApp confirmation (never fails the request)
-    await sendWhatsApp(phone, aidRequestReceivedMessage(fullName, requestId));
+    await sendAidConfirmation(phone, fullName, requestId);
     
     return NextResponse.json({ success: true, requestId });
   } catch (error) {

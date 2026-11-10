@@ -2,6 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
 import AutoRefresh from "@/components/AutoRefresh";
+import { getSession } from "@/lib/auth";
+import { canSeeAidRequests } from "@/lib/roles";
 import {
   HandHeart,
   Newspaper,
@@ -234,6 +236,13 @@ export default async function DashboardPage() {
     },
   ];
 
+  // Requesters' names are only for roles that handle aid requests
+  const session = await getSession().catch(() => null);
+  const viewer = session?.adminId
+    ? await prisma.admin.findUnique({ where: { id: session.adminId }, select: { role: true } })
+    : null;
+  const visibleRequests = canSeeAidRequests(viewer?.role) ? recentRequests : [];
+
   return (
     <div className="space-y-8">
       <AutoRefresh intervalMs={30_000} />
@@ -283,7 +292,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Table */}
-        {recentRequests.length > 0 ? (
+        {visibleRequests.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -306,7 +315,7 @@ export default async function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {recentRequests.map((req: RecentRequest, index: number) => (
+                {visibleRequests.map((req: RecentRequest, index: number) => (
                   <tr
                     key={req.id}
                     className="border-b border-slate-100 hover:bg-slate-50 transition-colors duration-200"

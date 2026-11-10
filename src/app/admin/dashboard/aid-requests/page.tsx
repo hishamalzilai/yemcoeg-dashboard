@@ -82,6 +82,13 @@ const aidTypeLabels: Record<string, string> = {
   other: "أخرى",
 };
 
+/** Attachments are private: open them through the login-protected route. */
+function attachmentHref(url: string) {
+  return url.includes("/storage/v1/object/public/aid_requests/")
+    ? `/api/admin/attachment?url=${encodeURIComponent(url)}`
+    : url;
+}
+
 function StatusBadge({ status }: { status: string }) {
   const s = statusConfig[status] || statusConfig.pending;
   return (
@@ -115,6 +122,15 @@ export default function AidRequestsPage() {
   const [pageSize, setPageSize] = useState(20);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Only the super admin may delete everything (also enforced on the server)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  useEffect(() => {
+    fetch("/api/admin/profile")
+      .then((res) => res.json())
+      .then((data) => setIsSuperAdmin(data?.role === "superadmin"))
+      .catch(console.error);
+  }, []);
 
   // "Delete all data" dialog
   const [wipeOpen, setWipeOpen] = useState(false);
@@ -280,7 +296,12 @@ export default function AidRequestsPage() {
       try {
         const parsedImages = JSON.parse(req.images);
         if (parsedImages && parsedImages.length > 0) {
-          imageLinks = parsedImages.join(" \n ");
+          imageLinks = parsedImages
+            .map((u: string) => {
+              const href = attachmentHref(u);
+              return href.startsWith("/") ? window.location.origin + href : href;
+            })
+            .join(" \n ");
         }
       } catch (e) {
         // ignore
@@ -345,17 +366,19 @@ export default function AidRequestsPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => {
-              setWipeText("");
-              setWipeError("");
-              setWipeOpen(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition-all text-sm font-bold"
-          >
-            <Trash2 size={16} />
-            حذف جميع البيانات
-          </button>
+          {isSuperAdmin && (
+            <button
+              onClick={() => {
+                setWipeText("");
+                setWipeError("");
+                setWipeOpen(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 transition-all text-sm font-bold"
+            >
+              <Trash2 size={16} />
+              حذف جميع البيانات
+            </button>
+          )}
           <button
             onClick={exportToExcel}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 transition-all text-sm font-bold"
@@ -563,13 +586,13 @@ export default function AidRequestsPage() {
                                 {parsedImages.map((url, idx) => (
                                   <a 
                                     key={idx} 
-                                    href={url} 
+                                    href={attachmentHref(url)} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="block relative rounded-xl overflow-hidden border border-slate-200 group aspect-square bg-slate-100"
                                   >
                                     <img 
-                                      src={url} 
+                                      src={attachmentHref(url)} 
                                       alt="مرفق" 
                                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110 opacity-90 group-hover:opacity-100"
                                     />

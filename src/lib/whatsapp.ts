@@ -1,6 +1,15 @@
 // إرسال إشعارات واتساب مباشرة عبر WasenderAPI (من السيرفر فقط — لا تستورد هذا الملف في كود العميل)
 
+import { canHit, rateLimit } from "./rate-limit";
+
 const WASENDER_URL = "https://www.wasenderapi.com/api/send-message";
+
+// Anyone can create an aid request, so automatic confirmations are capped:
+// a phone number can't be flooded, and the WhatsApp number can't be burned.
+const MAX_CONFIRMATIONS_PER_PHONE_PER_DAY = 3;
+const MAX_CONFIRMATIONS_PER_HOUR = 60;
+const DAY_MS = 86_400_000;
+const HOUR_MS = 3_600_000;
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "🕓 قيد الانتظار",
@@ -64,10 +73,56 @@ export async function sendWhatsApp(phone: string, text: string): Promise<SendRes
   return "retry";
 }
 
+/**
+ * The name comes from the public form, so it can't be trusted inside a message sent from
+ * our number: drop formatting, line breaks and anything carrying a link or phone number.
+ */
+export function safeName(raw: string | null | undefined): string {
+  const name = String(raw ?? "")
+    .replace(/[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2066-\u2069]/g, " ")
+    .replace(/[*_~`<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!name || name.length > 60) return "";
+  if (/https?:|www\.|\.[a-z]{2,}(\/|\s|$)|@|\d{3,}|[٠-٩]{3,}/i.test(name)) return "";
+  return name;
+}
+
+export type ConfirmationResult = SendResult | "phone-limit" | "global-limit";
+
+/**
+ * Sends the "request received" confirmation, within the abuse limits.
+ * "global-limit" means try again later; "phone-limit" means skip this one.
+ */
+export async function sendAidConfirmation(
+  phone: string,
+  name: string,
+  requestId: string,
+): Promise<ConfirmationResult> {
+  const to = normalizePhone(phone);
+  if (!to || !/^[A-Za-z0-9]{4,20}$/.test(requestId)) {
+    console.warn("WhatsApp: confirmation skipped (invalid phone or request id)");
+    return "failed";
+  }
+  // Checked in this order so a postponed message doesn't use up its phone's quota,
+  // and repeats to one blocked number can't use up the shared hourly quota.
+  if (!canHit("wa:global", MAX_CONFIRMATIONS_PER_HOUR, HOUR_MS)) {
+    console.warn("WhatsApp: hourly limit reached, confirmation postponed");
+    return "global-limit";
+  }
+  if (!rateLimit(`wa:${to}`, MAX_CONFIRMATIONS_PER_PHONE_PER_DAY, DAY_MS)) {
+    console.warn(`WhatsApp: daily limit reached for ****${to.slice(-4)}, confirmation skipped`);
+    return "phone-limit";
+  }
+  rateLimit("wa:global", MAX_CONFIRMATIONS_PER_HOUR, HOUR_MS);
+  return sendWhatsApp(to, aidRequestReceivedMessage(name, requestId));
+}
+
 export function aidRequestReceivedMessage(name: string, requestId: string): string {
+  const clean = safeName(name);
   return (
     "*تأكيد استلام طلب المساعدة* 🇾🇪🇪🇬\n\n" +
-    `مرحباً *${name}*،\n` +
+    (clean ? `مرحباً *${clean}*،\n` : "مرحباً بك،\n") +
     "تم استلام طلبك بنجاح من قبل الجالية اليمنية في مصر.\n\n" +
     `🔢 *رقم الطلب:* ${requestId}\n` +
     "⏳ سيتم مراجعة طلبك في أقرب وقت ممكن وسنوافيك بالتحديثات.\n\n" +
@@ -84,7 +139,7 @@ export function statusUpdateMessage(
 ): string {
   return (
     "*تحديث بخصوص طلب المساعدة الخاص بك* 🇾🇪🇪🇬\n\n" +
-    (name ? `مرحباً *${name}*،\n` : "مرحباً بك،\n") +
+    (safeName(name) ? `مرحباً *${safeName(name)}*،\n` : "مرحباً بك،\n") +
     "تم تحديث حالة طلبك لدى الجالية اليمنية في مصر.\n\n" +
     `🔢 *رقم الطلب:* ${requestId}\n` +
     `📊 *الحالة الحالية:* ${STATUS_LABELS[status] ?? status}\n` +

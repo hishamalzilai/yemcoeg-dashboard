@@ -17,7 +17,9 @@ import {
   Shield,
   Bell,
   MapPin,
+  UsersRound,
 } from "lucide-react";
+import { ROLES, canAccess, isRole } from "@/lib/roles";
 
 const sidebarLinks = [
   {
@@ -63,6 +65,12 @@ const sidebarLinks = [
     color: "from-red-600 to-red-500",
   },
   {
+    label: "المستخدمون",
+    href: "/admin/dashboard/users",
+    icon: UsersRound,
+    color: "from-slate-900 to-slate-800",
+  },
+  {
     label: "الإعدادات",
     href: "/admin/dashboard/settings",
     icon: Settings,
@@ -78,7 +86,7 @@ function Sidebar({
   onClose: () => void;
 }) {
   const pathname = usePathname();
-  const [role, setRole] = useState("superadmin");
+  const [role, setRole] = useState("");
 
   useEffect(() => {
     fetch("/api/admin/profile")
@@ -89,16 +97,10 @@ function Sidebar({
       .catch(console.error);
   }, []);
 
-  const visibleLinks = sidebarLinks.filter(link => {
-    if (role === "superadmin") return true;
-    if (role === "aid_admin") {
-      return ["/admin/dashboard", "/admin/dashboard/aid-requests", "/admin/dashboard/settings"].includes(link.href);
-    }
-    if (role === "news_admin") {
-      return ["/admin/dashboard", "/admin/dashboard/news", "/admin/dashboard/announcements", "/admin/dashboard/notifications", "/admin/dashboard/settings"].includes(link.href);
-    }
-    return true;
-  });
+  // Until the role loads, only the home link shows
+  const visibleLinks = sidebarLinks.filter((link) =>
+    role ? canAccess(link.href, "GET", role) : link.href === "/admin/dashboard",
+  );
 
   return (
     <>
@@ -219,7 +221,7 @@ function Sidebar({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-slate-900 truncate">المسؤول</p>
-              <p className="text-[10px] text-slate-500">مدير النظام</p>
+              <p className="text-[10px] text-slate-500">{isRole(role) ? ROLES[role].label : ""}</p>
             </div>
           </div>
 
