@@ -41,7 +41,10 @@ export async function sendWhatsApp(phone: string, text: string): Promise<boolean
         body: JSON.stringify({ to, text }),
         signal: AbortSignal.timeout(10_000),
       });
-      if (res.ok) return true;
+      if (res.ok) {
+        console.log(`WhatsApp: sent to ****${to.slice(-4)}`);
+        return true;
+      }
       console.error(`WhatsApp: attempt ${attempt} failed (${res.status}): ${await res.text()}`);
       if (res.status < 500 && res.status !== 429) return false; // خطأ في المفتاح/البيانات — لا فائدة من الإعادة
     } catch (err) {

@@ -2,19 +2,27 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
-const secretKey = process.env.JWT_SECRET || "default_secret";
-const key = new TextEncoder().encode(secretKey);
+// Never fall back to a guessable secret in production: anyone could forge an admin session.
+function getKey(): Uint8Array {
+  const secret =
+    process.env.JWT_SECRET ||
+    (process.env.NODE_ENV === "production" ? "" : "dev-only-insecure-secret");
+  if (!secret || secret.length < 32) {
+    throw new Error("JWT_SECRET must be set to a random string of at least 32 characters");
+  }
+  return new TextEncoder().encode(secret);
+}
 
 export async function encrypt(payload: any) {
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("24h")
-    .sign(key);
+    .sign(getKey());
 }
 
 export async function decrypt(input: string): Promise<any> {
-  const { payload } = await jwtVerify(input, key, {
+  const { payload } = await jwtVerify(input, getKey(), {
     algorithms: ["HS256"],
   });
   return payload;

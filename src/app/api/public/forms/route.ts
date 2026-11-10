@@ -33,16 +33,15 @@ export async function POST(request: Request) {
         transactionId: transactionId || null,
         fullName, phone, idNumber, city, address, aidType, description,
         images: JSON.stringify(imageUrls),
+        // Confirmation is sent right below; this stops the background notifier from sending it again
+        whatsappSent: true,
       },
     });
     
     const requestId = aidRequest.transactionId || aidRequest.id.split('-')[0].toUpperCase();
 
     // WhatsApp confirmation (never fails the request)
-    const sent = await sendWhatsApp(phone, aidRequestReceivedMessage(fullName, requestId));
-    if (sent) {
-      await prisma.aidRequest.update({ where: { id: aidRequest.id }, data: { whatsappSent: true } }).catch(() => {});
-    }
+    await sendWhatsApp(phone, aidRequestReceivedMessage(fullName, requestId));
     
     return NextResponse.json({ success: true, requestId });
   } catch (error) {

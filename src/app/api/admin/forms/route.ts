@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { deleteImages } from "@/lib/r2";
+import { deleteSupabaseFiles } from "@/lib/supabase-storage";
 
 const PAGE_SIZE = 20;
 const STATUSES = ["pending", "processing", "completed", "rejected"] as const;
@@ -85,7 +86,8 @@ export async function DELETE(request: Request) {
     }
 
     const { count } = await prisma.aidRequest.deleteMany({});
-    const imagesDeleted = await deleteImages(imageUrls);
+    // Images uploaded by the mobile app live in Supabase Storage; older/dashboard uploads may be in R2
+    const imagesDeleted = (await deleteSupabaseFiles(imageUrls)) + (await deleteImages(imageUrls));
 
     console.log(`Wiped ${count} aid requests and ${imagesDeleted}/${imageUrls.length} images`);
     return NextResponse.json({ success: true, deleted: count, imagesDeleted, imagesTotal: imageUrls.length });
