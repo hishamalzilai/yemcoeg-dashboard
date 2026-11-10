@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   HandHeart,
   Search,
@@ -19,6 +19,7 @@ import {
   AlertCircle,
   Download,
   Trash2,
+  BellRing,
   ChevronLeft,
   ChevronRight,
   X
@@ -132,8 +133,16 @@ export default function AidRequestsPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const fetchRequests = useCallback(async () => {
-    setLoading(true);
+  // Live updates: ids already shown, highlighted new arrivals, and a short notice
+  const knownIds = useRef<Set<string>>(new Set());
+  const lastTotalAll = useRef<number | null>(null);
+  const [newIds, setNewIds] = useState<Set<string>>(new Set());
+  const [arrivals, setArrivals] = useState(0);
+  const arrivalsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // silent = background refresh: no spinner, and new requests get highlighted
+  const fetchRequests = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const params = new URLSearchParams();
       if (statusFilter) params.set("status", statusFilter);
@@ -142,7 +151,20 @@ export default function AidRequestsPage() {
       const res = await fetch(`/api/admin/forms?${params}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Failed to load");
-      setRequests(data.items);
+      const items: AidRequest[] = data.items;
+      if (silent) {
+        const fresh = items.filter((r) => !knownIds.current.has(r.id)).map((r) => r.id);
+        if (fresh.length > 0) setNewIds(new Set(fresh));
+        const added = lastTotalAll.current === null ? 0 : (data.counts?.all ?? 0) - lastTotalAll.current;
+        if (added > 0) {
+          setArrivals(added);
+          if (arrivalsTimer.current) clearTimeout(arrivalsTimer.current);
+          arrivalsTimer.current = setTimeout(() => setArrivals(0), 8000);
+        }
+      }
+      for (const r of items) knownIds.current.add(r.id);
+      lastTotalAll.current = data.counts?.all ?? null;
+      setRequests(items);
       setTotal(data.total);
       setTotalPages(data.totalPages);
       setPageSize(data.pageSize);
@@ -151,13 +173,26 @@ export default function AidRequestsPage() {
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [statusFilter, debouncedSearch, page]);
 
   useEffect(() => {
     fetchRequests();
   }, [fetchRequests]);
+
+  // Background refresh every 15s while the tab is visible (paused while saving or in the delete dialog)
+  useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState === "visible" && !savingId && !wipeOpen) fetchRequests(true);
+    };
+    const id = setInterval(tick, 15_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [fetchRequests, savingId, wipeOpen]);
 
   const goToPage = (p: number) => {
     setExpandedId(null);
@@ -329,7 +364,7 @@ export default function AidRequestsPage() {
             تصدير إلى Excel
           </button>
           <button
-            onClick={fetchRequests}
+            onClick={() => fetchRequests()}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-all text-sm font-bold"
           >
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
@@ -337,6 +372,27 @@ export default function AidRequestsPage() {
           </button>
         </div>
       </div>
+
+      {/* New requests notice */}
+      {arrivals > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-5 py-3 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 text-sm font-bold">
+          <BellRing size={18} />
+          {arrivals === 1 ? "وصل طلب مساعدة جديد" : `وصل ${arrivals} طلبات مساعدة جديدة`}
+          {(page !== 1 || statusFilter || debouncedSearch) && (
+            <button
+              onClick={() => {
+                setArrivals(0);
+                setStatusFilter("");
+                setSearch("");
+                goToPage(1);
+              }}
+              className="px-3 py-1 rounded-lg bg-white/20 hover:bg-white/30 transition-all"
+            >
+              عرض
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Status Filter Tabs */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -411,7 +467,10 @@ export default function AidRequestsPage() {
                   isExpanded 
                     ? "bg-slate-50 border-slate-300 shadow-sm" 
                     : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-sm"
-                }`}
+                } ${newIds.has(req.id) ? "ring-2 ring-emerald-400 ring-offset-2" : ""}`}
+                onMouseEnter={() => {
+                  if (newIds.has(req.id)) setNewIds((prev) => { const next = new Set(prev); next.delete(req.id); return next; });
+                }}
               >
                 {/* Collapsed Header */}
                 <div 

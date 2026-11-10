@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
+import AutoRefresh from "@/components/AutoRefresh";
 import {
   HandHeart,
   Newspaper,
@@ -235,6 +236,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      <AutoRefresh intervalMs={30_000} />
       {/* Page Title */}
       <div className="fade-in-up" style={{ opacity: 0 }}>
         <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">

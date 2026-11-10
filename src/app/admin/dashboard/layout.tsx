@@ -277,10 +277,11 @@ function TopHeader({
   useEffect(() => {
     const fetchPendingCount = async () => {
       try {
-        const res = await fetch("/api/admin/forms?status=pending");
+        if (document.visibilityState !== "visible") return;
+        const res = await fetch("/api/admin/forms?status=pending&page=1", { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          setPendingCount(data.length);
+          setPendingCount(data.total ?? 0);
         }
       } catch (error) {
         console.error("Failed to fetch pending forms", error);
@@ -288,9 +289,13 @@ function TopHeader({
     };
     
     fetchPendingCount();
-    // Poll every 1 minute
-    const interval = setInterval(fetchPendingCount, 60000);
-    return () => clearInterval(interval);
+    // Poll every 15 seconds (and right away when the admin returns to the tab)
+    const interval = setInterval(fetchPendingCount, 15000);
+    document.addEventListener("visibilitychange", fetchPendingCount);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", fetchPendingCount);
+    };
   }, []);
 
   return (

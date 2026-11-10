@@ -20,17 +20,25 @@ export function normalizePhone(raw: string | null | undefined): string | null {
   return d.length >= 10 && d.length <= 15 ? "+" + d : null;
 }
 
-/** يرسل رسالة نصية. يرجع true عند النجاح ولا يرمي أخطاء أبداً. */
-export async function sendWhatsApp(phone: string, text: string): Promise<boolean> {
+/**
+ * نتيجة الإرسال:
+ * - "sent": وصلت إلى WasenderAPI بنجاح
+ * - "retry": فشل مؤقت (ضغط/حد إرسال 429 أو خطأ سيرفر أو شبكة) — تستحق إعادة المحاولة لاحقاً
+ * - "failed": فشل دائم (مفتاح ناقص/خاطئ أو رقم غير صالح) — لا فائدة من الإعادة
+ */
+export type SendResult = "sent" | "retry" | "failed";
+
+/** يرسل رسالة نصية. لا يرمي أخطاء أبداً. */
+export async function sendWhatsApp(phone: string, text: string): Promise<SendResult> {
   const apiKey = process.env.WASENDER_API_KEY;
   if (!apiKey) {
     console.warn("WhatsApp: WASENDER_API_KEY is not set, skipping");
-    return false;
+    return "failed";
   }
   const to = normalizePhone(phone);
   if (!to) {
     console.warn(`WhatsApp: invalid phone "${phone}", skipping`);
-    return false;
+    return "failed";
   }
 
   for (let attempt = 1; attempt <= 2; attempt++) {
@@ -43,16 +51,17 @@ export async function sendWhatsApp(phone: string, text: string): Promise<boolean
       });
       if (res.ok) {
         console.log(`WhatsApp: sent to ****${to.slice(-4)}`);
-        return true;
+        return "sent";
       }
       console.error(`WhatsApp: attempt ${attempt} failed (${res.status}): ${await res.text()}`);
-      if (res.status < 500 && res.status !== 429) return false; // خطأ في المفتاح/البيانات — لا فائدة من الإعادة
+      if (res.status === 429) return "retry"; // حد الإرسال — ننتظر الدورة القادمة بدل الضغط أكثر
+      if (res.status < 500) return "failed"; // خطأ في المفتاح/البيانات — لا فائدة من الإعادة
     } catch (err) {
       console.error(`WhatsApp: attempt ${attempt} error:`, err);
     }
     if (attempt < 2) await new Promise((r) => setTimeout(r, 2000));
   }
-  return false;
+  return "retry";
 }
 
 export function aidRequestReceivedMessage(name: string, requestId: string): string {

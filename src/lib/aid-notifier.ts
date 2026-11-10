@@ -6,13 +6,18 @@
 import { prisma } from "@/lib/prisma";
 import { sendWhatsApp, aidRequestReceivedMessage } from "@/lib/whatsapp";
 
-const INTERVAL_MS = 60_000;
+const INTERVAL_MS = 5_000;
 // Only confirm recent requests, so old rows are never messaged after a deploy.
 const LOOKBACK_MS = 6 * 60 * 60 * 1000;
 const BATCH_SIZE = 20;
+// Temporary failures (rate limit / Wasender down) are retried with growing waits:
+// 15s, 30s, 60s, 2m, 4m (~8 minutes in total), then we give up.
+const MAX_ATTEMPTS = 6;
+const RETRY_BASE_MS = 15_000;
 
 let started = false;
 let running = false;
+const attempts = new Map<string, { n: number; nextAt: number }>();
 
 async function tick() {
   if (running) return;
@@ -26,6 +31,10 @@ async function tick() {
     });
 
     for (const r of pending) {
+      // Still waiting before retrying this one
+      const prev = attempts.get(r.id);
+      if (prev && prev.nextAt > Date.now()) continue;
+
       // Claim the row first so a request is never confirmed twice.
       const claimed = await prisma.aidRequest.updateMany({
         where: { id: r.id, whatsappSent: false },
@@ -34,8 +43,25 @@ async function tick() {
       if (claimed.count !== 1) continue;
 
       const requestId = r.transactionId || r.id.split("-")[0].toUpperCase();
-      const ok = await sendWhatsApp(r.phone, aidRequestReceivedMessage(r.fullName, requestId));
-      if (!ok) console.error(`Aid notifier: confirmation for request ${requestId} was not sent`);
+      const result = await sendWhatsApp(r.phone, aidRequestReceivedMessage(r.fullName, requestId));
+
+      if (result === "sent") {
+        attempts.delete(r.id);
+      } else if (result === "retry") {
+        const n = (prev?.n ?? 0) + 1;
+        if (n < MAX_ATTEMPTS) {
+          attempts.set(r.id, { n, nextAt: Date.now() + RETRY_BASE_MS * 2 ** (n - 1) });
+          // Release the claim so the next tick tries again, and stop this batch:
+          // if WhatsApp is throttling us, sending more now only makes it worse.
+          await prisma.aidRequest.update({ where: { id: r.id }, data: { whatsappSent: false } });
+          console.warn(`Aid notifier: request ${requestId} will be retried (attempt ${n}/${MAX_ATTEMPTS})`);
+          break;
+        }
+        attempts.delete(r.id);
+        console.error(`Aid notifier: giving up on request ${requestId} after ${MAX_ATTEMPTS} attempts`);
+      } else {
+        console.error(`Aid notifier: confirmation for request ${requestId} was not sent`);
+      }
     }
   } catch (error) {
     console.error("Aid notifier error:", error);
@@ -53,7 +79,7 @@ export function startAidRequestNotifier() {
     return;
   }
 
-  console.log("Aid notifier: started (checks for new aid requests every 60s)");
-  setTimeout(tick, 10_000);
+  console.log(`Aid notifier: started (checks for new aid requests every ${INTERVAL_MS / 1000}s)`);
+  setTimeout(tick, 5_000);
   setInterval(tick, INTERVAL_MS);
 }
