@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
     if (item.active) {
       // Send notification in background
-      sendPushNotificationToAll("إعلان هام 📢", item.title);
+      sendPushNotificationToAll("إعلان هام 📢", item.title, "announcement");
     }
     
     return NextResponse.json(item, { status: 201 });

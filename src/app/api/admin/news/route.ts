@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
     if (news.published) {
       // Send notification in background
-      sendPushNotificationToAll("خبر جديد 📰", news.title);
+      sendPushNotificationToAll("خبر جديد 📰", news.title, "news");
     }
     
     return NextResponse.json(news, { status: 201 });
