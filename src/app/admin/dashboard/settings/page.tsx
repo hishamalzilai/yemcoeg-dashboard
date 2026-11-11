@@ -130,10 +130,10 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-8">
         {/* Sidebar Navigation */}
         <div className="w-full lg:w-64 flex-shrink-0">
-          <nav className="flex flex-row lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
+          <nav className="flex flex-row lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -160,8 +160,8 @@ export default function SettingsPage() {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1">
-          <div className="rounded-2xl bg-white border border-slate-200 p-6 sm:p-8 relative shadow-sm">
+        <div className="flex-1 min-w-0">
+          <div className="rounded-2xl bg-white border border-slate-200 p-4 sm:p-8 relative shadow-sm">
             
             {/* General Settings */}
             {activeTab === "general" && (
@@ -209,15 +209,15 @@ export default function SettingsPage() {
                   <p className="text-[12px] text-slate-500 mb-6">قم بتحديث معلوماتك الشخصية كمدير للنظام.</p>
                 </div>
 
-                <div className="flex items-center gap-6 mb-8">
-                  <div className="relative">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-3xl font-bold text-white shadow-xl shadow-emerald-500/20">
+                <div className="flex items-center gap-4 sm:gap-6 mb-8">
+                  <div className="relative shrink-0">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-3xl font-bold text-white shadow-xl shadow-emerald-500/20">
                       {profile.name.charAt(0) || "م"}
                     </div>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <h4 className="text-slate-900 font-bold text-lg">{profile.name || "المسؤول"}</h4>
-                    <p className="text-sm text-slate-500">{profile.email}</p>
+                    <p className="text-sm text-slate-500 break-all">{profile.email}</p>
                   </div>
                 </div>
 

@@ -145,7 +145,48 @@ export default function EmergencyPage() {
             <p className="text-sm font-bold">لا توجد أرقام مسجلة</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Phones: one row per number with its actions */}
+          <ul className="sm:hidden divide-y divide-slate-100">
+            {items.map((item) => {
+              const t = typeConfig[item.type] || typeConfig.other;
+              return (
+                <li key={item.id} className="flex items-center gap-3 px-4 py-3.5">
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <p className="text-sm font-bold text-slate-900">{item.name}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a href={`tel:${item.number.replace(/\s+/g, "")}`} dir="ltr" className="text-[15px] text-slate-800 font-bold font-mono tracking-wider">
+                        {item.number}
+                      </a>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-bold border ${t.color} ${t.border}`}>
+                        {t.label}
+                      </span>
+                      <span className="text-[11px] text-slate-400 font-semibold">ترتيب {item.order}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => handleOpenModal(item)}
+                      aria-label={`تعديل ${item.name}`}
+                      className="p-2.5 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(item.id)}
+                      disabled={deleting === item.id}
+                      aria-label={`حذف ${item.name}`}
+                      className="p-2.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all disabled:opacity-50"
+                    >
+                      {deleting === item.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/50">
@@ -204,6 +245,7 @@ export default function EmergencyPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

@@ -241,6 +241,8 @@ export default function AidRequestsPage() {
   };
 
   const toggleExpand = (req: AidRequest) => {
+    // Phones have no hover, so opening a card is what clears its "new" highlight there
+    if (newIds.has(req.id)) setNewIds((prev) => { const next = new Set(prev); next.delete(req.id); return next; });
     if (expandedId === req.id) {
       setExpandedId(null);
     } else {
@@ -351,7 +353,7 @@ export default function AidRequestsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-5 sm:space-y-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -365,7 +367,7 @@ export default function AidRequestsPage() {
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 [&>button]:flex-1 sm:[&>button]:flex-none [&>button]:justify-center [&>button]:whitespace-nowrap">
           {isSuperAdmin && (
             <button
               onClick={() => {
@@ -398,7 +400,7 @@ export default function AidRequestsPage() {
 
       {/* New requests notice */}
       {arrivals > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-5 py-3 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 text-sm font-bold">
+        <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] sm:w-auto justify-center flex items-center gap-3 px-5 py-3 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 text-sm font-bold">
           <BellRing size={18} />
           {arrivals === 1 ? "وصل طلب مساعدة جديد" : `وصل ${arrivals} طلبات مساعدة جديدة`}
           {(page !== 1 || statusFilter || debouncedSearch) && (
@@ -418,7 +420,7 @@ export default function AidRequestsPage() {
       )}
 
       {/* Status Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
         {[
           { key: "", label: "الكل", count: statusCounts.all },
           { key: "pending", label: "معلّق", count: statusCounts.pending },
@@ -462,7 +464,7 @@ export default function AidRequestsPage() {
         />
         <input
           type="text"
-          placeholder="ابحث بالاسم، رقم الهاتف، أو رقم المعاملة (مثال: 123456)..."
+          placeholder="ابحث بالاسم أو الهاتف أو رقم المعاملة..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full bg-white border border-slate-200 rounded-xl py-3.5 pr-12 pl-4 text-sm text-slate-900 placeholder-slate-400 input-glow transition-all"
@@ -498,14 +500,14 @@ export default function AidRequestsPage() {
                 {/* Collapsed Header */}
                 <div 
                   onClick={() => toggleExpand(req)}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-5 cursor-pointer gap-4"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-5 cursor-pointer gap-3 sm:gap-4"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0">
+                  <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 shrink-0">
                       <FileText size={20} className="text-slate-600" />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-3 mb-1">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1">
                         <h3 className="text-sm font-bold text-slate-900">{req.fullName}</h3>
                         {req.transactionId && (
                           <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 font-mono tracking-wider">
@@ -513,15 +515,19 @@ export default function AidRequestsPage() {
                           </span>
                         )}
                       </div>
-                      <div className="flex flex-wrap items-center gap-4 text-[12px] text-slate-500 font-medium">
-                        <span className="flex items-center gap-1.5"><Phone size={12} /> {req.phone}</span>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-slate-500 font-medium">
+                        <span dir="ltr" className="flex items-center gap-1.5 tabular-nums"><Phone size={12} /> {req.phone}</span>
                         <span className="flex items-center gap-1.5"><MapPin size={12} /> {req.city}</span>
                         <span className="flex items-center gap-1.5"><Hash size={12} /> {aidTypeLabels[req.aidType] || req.aidType}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 self-end sm:self-center">
+                  <div className="flex items-center gap-3 sm:gap-4 self-stretch sm:self-center">
+                    {/* Phones: the date sits next to the status instead of in its own column */}
+                    <span className="sm:hidden flex-1 text-[11px] text-slate-500 font-semibold tabular-nums">
+                      {new Date(req.createdAt).toLocaleDateString("ar-EG", { month: "short", day: "numeric", year: "numeric" })}
+                    </span>
                     <div className="text-left hidden sm:block">
                       <p className="text-[11px] text-slate-500 mb-1 font-semibold">تاريخ الطلب</p>
                       <p className="text-[12px] text-slate-700 tabular-nums font-bold">
@@ -537,10 +543,10 @@ export default function AidRequestsPage() {
 
                 {/* Expanded Details Content */}
                 {isExpanded && (
-                  <div className="border-t border-slate-200 bg-white p-5 sm:p-6 flex flex-col lg:flex-row gap-6 animate-in slide-in-from-top-2 fade-in duration-200">
+                  <div className="border-t border-slate-200 bg-white p-4 sm:p-6 flex flex-col lg:flex-row gap-6 animate-in slide-in-from-top-2 fade-in duration-200">
                     
                     {/* Left Side: Information */}
-                    <div className="flex-1 space-y-6">
+                    <div className="flex-1 min-w-0 space-y-6">
                       <div>
                         <h4 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
                           <AlertCircle size={16} className="text-red-600" />
@@ -550,12 +556,12 @@ export default function AidRequestsPage() {
                           {[
                             { label: "رقم الهوية/الجواز", value: req.idNumber },
                             { label: "العنوان التفصيلي", value: req.address },
-                            { label: "نوع المساعدة", value: req.aidType },
+                            { label: "نوع المساعدة", value: aidTypeLabels[req.aidType] || req.aidType },
                             { label: "تاريخ التسجيل", value: new Date(req.createdAt).toLocaleString("ar-EG") },
                           ].map((info, idx) => (
                             <div key={idx} className="bg-slate-50 p-3 rounded-xl border border-slate-200">
                               <p className="text-[11px] text-slate-500 mb-1 font-semibold">{info.label}</p>
-                              <p className="text-[13px] text-slate-900 font-bold">{info.value}</p>
+                              <p className="text-[13px] text-slate-900 font-bold break-words">{info.value}</p>
                             </div>
                           ))}
                         </div>
@@ -608,7 +614,7 @@ export default function AidRequestsPage() {
 
                     {/* Right Side: Actions (Admin Controls) */}
                     <div className="w-full lg:w-72 shrink-0 space-y-4">
-                      <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">
+                      <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
                         <h4 className="text-sm font-bold text-slate-900 mb-4">إجراءات الإدارة</h4>
                         
                         <div className="space-y-4">
@@ -700,7 +706,7 @@ export default function AidRequestsPage() {
           onClick={() => !wiping && setWipeOpen(false)}
         >
           <div
-            className="w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-xl p-6 space-y-5"
+            className="w-full max-w-md max-h-[90dvh] overflow-y-auto bg-white rounded-2xl border border-slate-200 shadow-xl p-5 sm:p-6 space-y-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4">

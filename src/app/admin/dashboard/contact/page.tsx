@@ -301,7 +301,7 @@ export default function ContactInfoPage() {
       <Section icon={<Phone size={16} className="text-red-600" />} title="العنوان ووسائل الاتصال">
         <Field label="العنوان">
           <textarea
-            rows={2}
+            rows={3}
             value={form.address}
             onChange={(e) => set("address", e.target.value)}
             className={`${inputClass} resize-none`}

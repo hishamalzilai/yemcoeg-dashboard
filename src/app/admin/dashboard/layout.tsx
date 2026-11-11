@@ -115,13 +115,13 @@ function Sidebar({
       {/* Sidebar */}
       <aside
         className={`
-          fixed top-0 right-0 z-50 h-screen w-[280px]
+          fixed top-0 right-0 z-50 h-dvh lg:h-screen w-[280px] max-w-[85vw]
           bg-white/95 backdrop-blur-xl
           border-l border-slate-200
           shadow-2xl shadow-slate-200/50
           transform transition-transform duration-300 ease-in-out
           lg:translate-x-0 lg:static lg:z-auto
-          ${isOpen ? "translate-x-0" : "translate-x-full"}
+          ${isOpen ? "translate-x-0" : "translate-x-full invisible lg:visible"}
           flex flex-col
         `}
       >
@@ -144,6 +144,7 @@ function Sidebar({
           </div>
           <button
             onClick={onClose}
+            aria-label="إغلاق القائمة"
             className="lg:hidden p-2 rounded-xl hover:bg-slate-100 text-slate-500 transition-all duration-200"
           >
             <X size={20} />
@@ -309,10 +310,11 @@ function TopHeader({
 
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-slate-200">
-      <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 h-[68px]">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 h-[60px] sm:h-[68px]">
+        <div className="flex items-center gap-3 sm:gap-4">
           <button
             onClick={onMenuClick}
+            aria-label="فتح القائمة"
             className="lg:hidden p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-all duration-200"
           >
             <Menu size={20} />
@@ -374,6 +376,19 @@ export default function DashboardLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // While the phone menu is open, the page behind it must not scroll, and Escape closes it
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSidebarOpen(false);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [sidebarOpen]);
+
   return (
     <div dir="rtl" className="min-h-screen font-cairo relative bg-slate-50 text-slate-900">
       {/* Background decorative orbs (Very subtle for light mode) */}
@@ -390,8 +405,8 @@ export default function DashboardLayout({
           onClose={() => setSidebarOpen(false)}
         />
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col min-h-screen">
+        {/* Main Content (min-w-0 lets wide tables and tab rows scroll inside it instead of widening the page on phones) */}
+        <div className="flex-1 min-w-0 flex flex-col min-h-screen">
           {/* Top Header */}
           <TopHeader onMenuClick={() => setSidebarOpen(true)} />
 
@@ -401,7 +416,7 @@ export default function DashboardLayout({
           </main>
 
           {/* Footer */}
-          <footer className="px-6 py-4 border-t border-slate-200 bg-white/60 backdrop-blur-sm">
+          <footer className="px-4 sm:px-6 py-4 border-t border-slate-200 bg-white/60 backdrop-blur-sm">
             <p className="text-center text-[11px] text-slate-500 font-bold">
               © {new Date().getFullYear()} الجالية اليمنية — جميع الحقوق محفوظة
             </p>

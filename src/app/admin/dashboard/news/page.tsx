@@ -180,7 +180,7 @@ export default function NewsPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {currentNews.map((item) => (
               <div
                 key={item.id}
@@ -193,17 +193,20 @@ export default function NewsPage() {
                   ) : (
                     <ImageIcon size={32} className="text-slate-400" />
                   )}
-                  <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
+                  {/* Always shown on touch screens (no hover there); revealed on hover with a mouse */}
+                  <div className="absolute top-2 left-2 flex gap-1.5 sm:gap-1 [@media(hover:hover)]:opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
+                    <button
                       onClick={() => handleOpenModal(item)}
-                      className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md text-white hover:bg-red-600 transition-colors"
+                      aria-label="تعديل الخبر"
+                      className="p-2 sm:p-1.5 rounded-lg bg-black/60 backdrop-blur-md text-white hover:bg-red-600 transition-colors"
                     >
                       <Edit2 size={14} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDelete(item.id)}
                       disabled={deleting === item.id}
-                      className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md text-white hover:bg-slate-900 transition-colors disabled:opacity-50"
+                      aria-label="حذف الخبر"
+                      className="p-2 sm:p-1.5 rounded-lg bg-black/60 backdrop-blur-md text-white hover:bg-slate-900 transition-colors disabled:opacity-50"
                     >
                       {deleting === item.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                     </button>

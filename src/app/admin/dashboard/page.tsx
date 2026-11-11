@@ -43,7 +43,7 @@ function StatCard({
       className={`
         relative overflow-hidden rounded-2xl
         bg-white border border-slate-200
-        p-6 card-hover shine-hover shadow-sm
+        p-4 sm:p-6 card-hover shine-hover shadow-sm
         fade-in-up ${delay}
         group
       `}
@@ -54,12 +54,12 @@ function StatCard({
         className={`absolute -top-12 -left-12 w-32 h-32 rounded-full bg-gradient-to-br ${gradient} opacity-5 blur-2xl group-hover:opacity-10 transition-opacity duration-500`}
       />
 
-      <div className="relative z-10 flex items-start justify-between">
-        <div className="flex-1">
+      <div className="relative z-10 flex flex-col-reverse items-start gap-3 sm:flex-row sm:justify-between">
+        <div className="flex-1 min-w-0">
           <p className="text-[12px] font-bold text-slate-500 mb-1 tracking-wide">
             {title}
           </p>
-          <p className="text-4xl font-black text-slate-900 mb-1 tabular-nums">
+          <p className="text-3xl sm:text-4xl font-black text-slate-900 mb-1 tabular-nums">
             {value.toLocaleString("ar-EG")}
           </p>
           {subtitle && (
@@ -77,7 +77,7 @@ function StatCard({
 
         <div
           className={`
-            p-3 rounded-2xl bg-gradient-to-br ${gradient}
+            p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-gradient-to-br ${gradient}
             shadow-md ${glowClass}
             group-hover:scale-110 transition-transform duration-300
           `}
@@ -244,11 +244,11 @@ export default async function DashboardPage() {
   const visibleRequests = canSeeAidRequests(viewer?.role) ? recentRequests : [];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <AutoRefresh intervalMs={30_000} />
       {/* Page Title */}
       <div className="fade-in-up" style={{ opacity: 0 }}>
-        <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
+        <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-br from-red-600 to-red-500 shadow-md shadow-red-500/15">
             <AlertTriangle size={20} className="text-white" />
           </div>
@@ -260,7 +260,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
         {stats.map((stat) => (
           <StatCard key={stat.title} {...stat} />
         ))}
@@ -272,7 +272,7 @@ export default async function DashboardPage() {
         style={{ opacity: 0 }}
       >
         {/* Table Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+        <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-slate-200">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 shadow-md shadow-slate-500/15">
               <HandHeart size={18} className="text-white" />
@@ -293,7 +293,27 @@ export default async function DashboardPage() {
 
         {/* Table */}
         {visibleRequests.length > 0 ? (
-          <div className="overflow-x-auto">
+          <>
+          {/* Phones: one card per request */}
+          <ul className="sm:hidden divide-y divide-slate-100">
+            {visibleRequests.map((req: RecentRequest) => (
+              <li key={req.id} className="px-4 py-3.5 space-y-2">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-sm font-bold text-slate-900 leading-snug">{req.fullName}</span>
+                  <StatusBadge status={req.status} />
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-slate-500 font-medium">
+                  <AidTypeBadge type={req.aidType} />
+                  <span>{req.city}</span>
+                  <span className="tabular-nums">
+                    {new Date(req.createdAt).toLocaleDateString("ar-EG", { month: "short", day: "numeric" })}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/50">
@@ -347,6 +367,7 @@ export default async function DashboardPage() {
               </tbody>
             </table>
           </div>
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-slate-500">
             <HandHeart size={40} className="mb-3 opacity-30" />

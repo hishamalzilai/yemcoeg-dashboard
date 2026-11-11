@@ -163,8 +163,8 @@ export default function UsersPage() {
         </button>
       </div>
 
-      {/* Role guide */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {/* Role guide (hidden on phones: the add/edit dialog already describes each role) */}
+      <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {(Object.keys(ROLES) as Role[]).map((role) => (
           <div key={role} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
             <span className={`inline-block px-2.5 py-1 rounded-lg text-[11px] font-bold border ${roleStyles[role]}`}>
