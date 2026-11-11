@@ -29,10 +29,11 @@ const roleStyles: Record<Role, string> = {
   superadmin: "text-red-700 bg-red-50 border-red-200",
   news_admin: "text-blue-700 bg-blue-50 border-blue-200",
   aid_admin: "text-emerald-700 bg-emerald-50 border-emerald-200",
+  media_aid_admin: "text-violet-700 bg-violet-50 border-violet-200",
   secretary: "text-amber-700 bg-amber-50 border-amber-200",
 };
 
-const roleOrder: Role[] = ["news_admin", "aid_admin", "secretary", "superadmin"];
+const roleOrder: Role[] = ["news_admin", "aid_admin", "media_aid_admin", "secretary", "superadmin"];
 const emptyForm = { name: "", email: "", password: "", role: "news_admin" as Role };
 
 const inputClass =
@@ -163,7 +164,7 @@ export default function UsersPage() {
       </div>
 
       {/* Role guide */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {(Object.keys(ROLES) as Role[]).map((role) => (
           <div key={role} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
             <span className={`inline-block px-2.5 py-1 rounded-lg text-[11px] font-bold border ${roleStyles[role]}`}>

@@ -6,6 +6,10 @@ export const ROLES = {
   superadmin: { label: "مدير عام", description: "كل الأقسام وإدارة المستخدمين" },
   news_admin: { label: "المركز الإعلامي", description: "الأخبار والإعلانات والإشعارات" },
   aid_admin: { label: "المركز الإنساني", description: "طلبات المساعدة" },
+  media_aid_admin: {
+    label: "المركز الإعلامي والإنساني",
+    description: "الأخبار والإعلانات والإشعارات وطلبات المساعدة",
+  },
   secretary: { label: "السكرتارية", description: "طلبات المساعدة ومعلومات التواصل وأرقام الطوارئ" },
 } as const;
 
@@ -15,8 +19,8 @@ export const isRole = (value: unknown): value is Role =>
   typeof value === "string" && Object.hasOwn(ROLES, value);
 
 const SUPER: Role[] = ["superadmin"];
-const AID: Role[] = ["superadmin", "aid_admin", "secretary"];
-const MEDIA: Role[] = ["superadmin", "news_admin"];
+const AID: Role[] = ["superadmin", "aid_admin", "media_aid_admin", "secretary"];
+const MEDIA: Role[] = ["superadmin", "news_admin", "media_aid_admin"];
 const OFFICE: Role[] = ["superadmin", "secretary"];
 
 // Which roles may use each area. Paths not listed are open to any logged-in admin.

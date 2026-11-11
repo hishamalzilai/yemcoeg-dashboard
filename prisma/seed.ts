@@ -39,7 +39,18 @@ async function main() {
     },
   });
 
-  console.log("Seeded admins:", [superadmin.email, aidAdmin.email, newsAdmin.email]);
+  const mediaAidAdmin = await prisma.admin.upsert({
+    where: { email: "media-aid@yemeni.community" },
+    update: {},
+    create: {
+      email: "media-aid@yemeni.community",
+      password: defaultPassword,
+      name: "مشرف المركز الإعلامي والإنساني",
+      role: "media_aid_admin"
+    },
+  });
+
+  console.log("Seeded admins:", [superadmin.email, aidAdmin.email, newsAdmin.email, mediaAidAdmin.email]);
 }
 
 main()
